@@ -6,6 +6,7 @@
   <title>Rocket Reels — Episode Diagnostics</title>
   <link rel="stylesheet" href="/static/App.css">
   <script src="/static/Shell.js?v=3" defer></script>
+  <script src="/static/SessionResults.js"></script>
 </head>
 <body class="screen5-page">
 <main class="shell-main s5-main">
@@ -58,7 +59,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     loadProjects();
-    $('concept-select').addEventListener('change', updateProjectMeta);
+    $('concept-select').addEventListener('change', () => { updateProjectMeta(); RRSessionResults.rememberProject($('concept-select').value); });
     $('load-diag-btn').addEventListener('click', runAnalysis);
     $('filter-priority').addEventListener('change', () => { if (currentDiagnostics) renderEpisodes(currentDiagnostics); });
   });
@@ -76,7 +77,17 @@
         return;
       }
       select.innerHTML = ready.map(p => `<option value="${escapeHtml(p.id)}" data-version="${escapeHtml(p.screenplay_version)}" data-title="${escapeHtml(p.screenplay_title || p.title)}">${escapeHtml(p.title)} · v${escapeHtml(p.screenplay_version)}</option>`).join('');
+      const rememberedProject = RRSessionResults.getProject();
+      if (rememberedProject && ready.some(p => String(p.id) === rememberedProject)) select.value = rememberedProject;
       updateProjectMeta();
+      const savedResults = RRSessionResults.load(5, select.value);
+      if (savedResults) {
+        currentDiagnostics = savedResults;
+        renderEpisodes(savedResults);
+        $('s5-summary-card').dataset.state = savedResults.review_notes?.length ? 'review' : 'pass';
+        $('episodes-subtitle').textContent = 'Restored saved session analysis';
+        setStatus('Restored your previous Screen 5 analysis for this session. No new AI call was made.', 'success');
+      }
     } catch (err) {
       select.innerHTML = '<option value="">Unable to load projects</option>';
       setStatus(err.message || 'Unable to load approved projects.', 'error');
@@ -102,6 +113,7 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || 'Episode analysis failed.');
       currentDiagnostics = data;
+      RRSessionResults.save(5, projectId, data);
       const cacheText = data.cache_hit ? ' · Cached result (0 new tokens)' : '';
       setStatus(`Analysis complete${cacheText}. Check evidence and review notes before assigning rewrite tasks.`, 'success');
       $('s5-summary-card').dataset.state = data.review_notes?.length ? 'review' : 'pass';
