@@ -6,6 +6,7 @@
   <title>Rocket Reels — Editorial Gates & Intensity</title>
   <link rel="stylesheet" href="/static/App.css">
   <script src="/static/Shell.js?v=3" defer></script>
+  <script src="/static/SessionResults.js"></script>
 </head>
 <body class="screen4-page">
   <main class="shell-main s4-main">
@@ -67,7 +68,14 @@
         return;
       }
       select.innerHTML = projects.map(p => `<option value="${esc(p.id)}">${esc(p.title || `Concept #${p.id}`)} · v${esc(p.screenplay_version)}</option>`).join('');
+      const rememberedProject = RRSessionResults.getProject();
+      if (rememberedProject && projects.some(p => String(p.id) === rememberedProject)) select.value = rememberedProject;
       updateProjectMeta();
+      const savedResults = RRSessionResults.load(4, select.value);
+      if (savedResults) {
+        renderGates(savedResults);
+        setMessage('Restored your previous Screen 4 analysis for this session. No new AI call was made.', 'success');
+      }
     } catch (error) {
       select.innerHTML = '<option value="">Unable to load projects</option>';
       setMessage(error.message || 'Unable to load projects.', 'error');
@@ -132,6 +140,7 @@
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || 'Screenplay evaluation failed.');
       renderGates(data);
+      RRSessionResults.save(4, select.value, data);
       setMessage(data.cache_hit ? 'Loaded a matching saved analysis. No new model call was needed.' : 'Evaluation complete. Please review the evidence and outstanding sign-off.', 'success');
     } catch (error) {
       setMessage(error.message || 'Unexpected error while evaluating screenplay.', 'error');
@@ -142,7 +151,7 @@
       button.innerHTML = '<span aria-hidden="true">✦</span> Evaluate screenplay';
     }
   });
-  select.addEventListener('change', updateProjectMeta);
+  select.addEventListener('change', () => { updateProjectMeta(); RRSessionResults.rememberProject(select.value); });
   loadProjects();
 })();
 </script>
