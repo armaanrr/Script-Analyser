@@ -6,6 +6,7 @@
   <title>Rocket Reels — Character & Emotional Journey</title>
   <link rel="stylesheet" href="/static/App.css">
   <script src="/static/Shell.js?v=2" defer></script>
+  <script src="/static/SessionResults.js"></script>
 </head>
 <body class="screen6-page">
 <main class="shell-main s6-main">
@@ -76,14 +77,23 @@
       projects = all.filter(p => p.approved && p.screenplay_version != null);
       select.innerHTML = projects.length ? projects.map(p => `<option value="${Number(p.id)}">${escapeHtml(p.title)} · v${escapeHtml(p.screenplay_version)}</option>`).join('') : '<option value="">No approved project with a screenplay found</option>';
       $('s6-project-meta').textContent = projects.length ? 'Only approved concepts with an uploaded screenplay are shown.' : 'Approve a concept on Screen 1 and upload a screenplay on Screen 2 first.';
+      const rememberedProject = RRSessionResults.getProject();
+      if (rememberedProject && projects.some(p => String(p.id) === rememberedProject)) select.value = rememberedProject;
       updateMeta();
+      const savedResults = RRSessionResults.load(6, select.value);
+      if (savedResults) {
+        render(savedResults);
+        $('s6-status-card').dataset.state = savedResults.review_notes?.length ? 'review' : 'pass';
+        $('s6-status-hint').textContent = 'Restored saved session analysis';
+        status('Restored your previous Screen 6 analysis for this session. No new AI call was made.', 'success');
+      }
     } catch (error) { select.innerHTML = '<option value="">Project list unavailable</option>'; status(error.message || 'Could not load projects.', 'error'); }
   }
   function updateMeta() {
     const project = projects.find(p => String(p.id) === select.value);
     $('s6-project-meta').textContent = project ? `${project.screenplay_title || project.title} · Version ${project.screenplay_version} · ${Number(project.word_count || 0).toLocaleString()} words` : 'Select an approved screenplay project.';
   }
-  select.addEventListener('change', updateMeta);
+  select.addEventListener('change', () => { updateMeta(); RRSessionResults.rememberProject(select.value); });
   button.addEventListener('click', async () => {
     const id = select.value;
     if (!id) { status('Select an approved project with an uploaded screenplay first.', 'error'); return; }
@@ -96,6 +106,7 @@
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || 'Character analysis failed.');
       render(data);
+      RRSessionResults.save(6, id, data);
       status(data.cache_hit ? 'Analysis loaded from cache — no new model tokens were used.' : 'Analysis complete. Review flagged evidence and editorial notes before relying on the findings.', data.review_notes?.length ? 'info' : 'success');
       $('s6-status-card').dataset.state = data.review_notes?.length ? 'review' : 'pass';
       $('s6-status-hint').textContent = data.review_notes?.length ? 'Review recommended' : 'Analysis complete';

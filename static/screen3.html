@@ -5,6 +5,7 @@
   <title>Rocket Reels - Screen 03 Scorecard</title>
   <link rel="stylesheet" href="/static/App.css">
   <script src="/static/Shell.js" defer></script>
+  <script src="/static/SessionResults.js"></script>
 </head>
 <body>
   <main class="shell-main">
@@ -91,6 +92,7 @@
     const data = await res.json();
     statusDiv.innerHTML = `<div class="chip ok">✓ Scorecard Analysis Complete!</div>`;
     renderScorecard(data);
+    RRSessionResults.save(3, conceptId, data);
 
   } catch (err) {
     console.error("Scorecard Error:", err);
@@ -119,9 +121,13 @@
           return `<option value="${c.id}">${title} (Concept #${c.id})</option>`;
         }).join("");
 
-        // Auto-run if a concept is selected
-        if (concepts.length > 0) {
-          selectEl.value = concepts[0].id;
+        // Restore this screen's result without making another AI call.
+        const rememberedProject = RRSessionResults.getProject();
+        selectEl.value = concepts.some(c => String(c.id) === rememberedProject) ? rememberedProject : (concepts[0]?.id || '');
+        const savedResults = RRSessionResults.load(3, selectEl.value);
+        if (savedResults) {
+          renderScorecard(savedResults);
+          document.getElementById('scorecard-status').innerHTML = '<div class="chip ok">Restored saved scorecard for this session.</div>';
         }
       } catch (err) {
         selectEl.innerHTML = `<option value="">Failed to load concepts</option>`;

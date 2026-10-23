@@ -5,6 +5,7 @@
   <title>Rocket Reels - Screen 08: Promo Assets, Season Strategy & Casting Fit</title>
   <link rel="stylesheet" href="/static/App.css">
   <script src="/static/Shell.js?v=2" defer></script>
+  <script src="/static/SessionResults.js"></script>
 </head>
 <body>
   <main class="shell-main">
@@ -77,6 +78,7 @@
           const usage = `${data.provider || 'Provider'} · ${data.model || 'configured model'} · ${data.cache_hit ? 'cached · 0 new tokens' : `${data.input_tokens ?? '—'} input / ${data.output_tokens ?? '—'} output tokens`}`;
           statusDiv.innerHTML = `<div class="chip ok">✓ Analysis complete</div><div class="note">${escapeHtml(usage)}</div>`;
           renderPromoAndCasting(escapeObject(data), conceptId);
+          RRSessionResults.save(8, conceptId, data);
 
         } catch (err) {
           console.error("Screen 08 Error:", err);
@@ -109,8 +111,12 @@
           return `<option value="${escapeHtml(c.id)}">${escapeHtml(title)} (Concept #${escapeHtml(c.id)})</option>`;
         }).join("");
 
-        if (approved.length > 0) {
-          selectEl.value = approved[0].id;
+        const rememberedProject = RRSessionResults.getProject();
+        selectEl.value = approved.some(c => String(c.id) === rememberedProject) ? rememberedProject : (approved[0]?.id || '');
+        const savedResults = RRSessionResults.load(8, selectEl.value);
+        if (savedResults) {
+          renderPromoAndCasting(escapeObject(savedResults), Number(selectEl.value));
+          document.getElementById('status-div').innerHTML = '<div class="chip ok">Restored saved Screen 8 analysis for this session.</div>';
         }
       } catch (err) {
         selectEl.innerHTML = `<option value="">Failed to load concepts</option>`;

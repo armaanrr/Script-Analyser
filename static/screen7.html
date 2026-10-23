@@ -6,6 +6,7 @@
   <title>Rocket Reels — Audience, Title & World</title>
   <link rel="stylesheet" href="/static/App.css">
   <script src="/static/Shell.js?v=2" defer></script>
+  <script src="/static/SessionResults.js"></script>
 </head>
 <body>
 <main class="shell-main s7-page">
@@ -41,14 +42,21 @@
       const eligible = projects.filter(p => p.approved && p.screenplay_version != null);
       select.innerHTML = '<option value="">Choose a project…</option>' + eligible.map(p=>`<option value="${esc(p.id)}">${esc(p.title)} · v${esc(p.screenplay_version)}</option>`).join('');
       if (!eligible.length) { select.innerHTML = '<option value="">No approved project with a screenplay found</option>'; status.innerHTML='<div class="s7-alert">Approve a concept on Screen 1 and upload a screenplay on Screen 2 first.</div>'; }
+      const rememberedProject = RRSessionResults.getProject();
+      if (rememberedProject && eligible.some(p => String(p.id) === rememberedProject)) select.value = rememberedProject;
       updateMeta();
+      const savedResults = RRSessionResults.load(7, select.value);
+      if (savedResults) {
+        render(savedResults);
+        status.innerHTML = '<div class="s7-success">Restored your previous Screen 7 analysis for this session. No new AI call was made.</div>';
+      }
     } catch (error) { select.innerHTML='<option value="">Unable to load projects</option>'; status.innerHTML=`<div class="s7-alert">${esc(error.message)}</div>`; }
   }
   function updateMeta() {
     const p = projects.find(x => String(x.id) === select.value);
     $('project-meta').textContent = p ? `Version ${p.screenplay_version} · ${Number(p.word_count || 0).toLocaleString()} words · ${p.parse_status || 'parse status unavailable'}` : 'Choose an approved project with a screenplay.';
   }
-  select.addEventListener('change', updateMeta);
+  select.addEventListener('change', () => { updateMeta(); RRSessionResults.rememberProject(select.value); });
   button.addEventListener('click', async () => {
     if (!select.value) { status.innerHTML='<div class="s7-alert">Select an approved project with a screenplay first.</div>'; return; }
     button.disabled = true; button.textContent = 'Analyzing…';
@@ -58,6 +66,7 @@
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Analysis failed.');
       render(data);
+      RRSessionResults.save(7, select.value, data);
       const usage = data.cache_hit ? 'Cached result · no new model tokens' : `Provider: ${data.provider || 'configured model'} · Tokens: ${data.input_tokens ?? '—'} in / ${data.output_tokens ?? '—'} out`;
       status.innerHTML=`<div class="s7-success">${data.cache_hit ? '✓ Cached report loaded' : '✓ Analysis complete'} <span>${esc(usage)}</span></div>`;
     } catch (error) { status.innerHTML=`<div class="s7-alert">${esc(error.message)} Please check approval, screenplay upload and server logs.</div>`; }

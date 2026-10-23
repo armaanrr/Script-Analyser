@@ -6,6 +6,7 @@
   <title>Rocket Reels — Screen 02: Executive Overview & Genre</title>
   <link rel="stylesheet" href="/static/App.css">
   <script src="/static/Shell.js" defer></script>
+  <script src="/static/SessionResults.js"></script>
 </head>
 <body>
   <main class="shell-main screen2-main">
@@ -137,6 +138,13 @@
             const title = c.title || c.working_title || `Concept #${c.id}`;
             return `<option value="${escapeHTML(c.id)}">${escapeHTML(title)} · #${escapeHTML(c.id)}</option>`;
           }).join('');
+          const rememberedProject = RRSessionResults.getProject();
+          if (rememberedProject && approved.some(c => String(c.id) === rememberedProject)) select.value = rememberedProject;
+          const savedResults = RRSessionResults.load(2, select.value);
+          if (savedResults) {
+            renderResults(savedResults);
+            $('upload-status').innerHTML = '<div class="s2-alert s2-alert-success">Restored your previous Screen 2 analysis for this session.</div>';
+          }
         } catch (err) {
           select.innerHTML = '<option value="">Unable to load approved concepts</option>';
           $('upload-status').innerHTML = `<div class="s2-alert s2-alert-error">${escapeHTML(err.message)}</div>`;
@@ -180,6 +188,7 @@
             ? '<div class="s2-alert s2-alert-success">Cached classification reused — no new AI generation call was needed.</div>'
             : '<div class="s2-alert s2-alert-success">Analysis complete. Review the findings before moving to the scorecard.</div>';
           renderResults(data);
+          RRSessionResults.save(2, conceptId, data);
         } catch (err) {
           $('upload-status').innerHTML = `<div class="s2-alert s2-alert-error">${escapeHTML(err.message || 'Unexpected error. Please try again.')}</div>`;
           $('screenplay-results').innerHTML = `<div class="panel s2-error-state"><span class="s2-eyebrow">ANALYSIS NOT COMPLETED</span><h2>We couldn't finish this run.</h2><p>${escapeHTML(err.message || 'Unexpected error.')}</p><p class="sub">Your file may contain no extractable text, or the configured AI provider may not be available.</p></div>`;
