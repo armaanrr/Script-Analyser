@@ -5,6 +5,7 @@
   <title>Rocket Reels - Screen 09: Production Breakdown, Rewrite Plan & Version Comparison</title>
   <link rel="stylesheet" href="/static/App.css">
   <script src="/static/Shell.js?v=2" defer></script>
+  <script src="/static/SessionResults.js"></script>
 </head>
 <body>
   <main class="shell-main">
@@ -82,6 +83,7 @@
           const data = await res.json();
           statusDiv.innerHTML = `<div class="chip ok">✓ Production & Rewrite Breakdown Generated!</div>`;
           renderProductionDashboard(data);
+          RRSessionResults.save(9, conceptId, data);
 
         } catch (err) {
           console.error("Screen 09 Error:", err);
@@ -115,8 +117,13 @@
           return `<option value="${c.id}">${escapeHtml(title)} (Concept #${c.id})</option>`;
         }).join("");
 
-        if (approved.length > 0) {
-          selectEl.value = approved[0].id;
+        const rememberedProject = RRSessionResults.getProject();
+        selectEl.value = approved.some(c => String(c.id) === rememberedProject) ? rememberedProject : (approved[0]?.id || '');
+        const savedResults = RRSessionResults.load(9, selectEl.value);
+        if (savedResults) {
+          activeProjectId = selectEl.value;
+          renderProductionDashboard(savedResults);
+          document.getElementById('status-div').innerHTML = '<div class="chip ok">Restored saved Screen 9 analysis for this session.</div>';
         }
       } catch (err) {
         selectEl.innerHTML = `<option value="">Failed to load concepts</option>`;
