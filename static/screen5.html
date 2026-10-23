@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rocket Reels — Episode Diagnostics</title>
+  <link rel="stylesheet" href="/static/App.css">
+  <script src="/static/Shell.js?v=3" defer></script>
+</head>
+<body class="screen5-page">
+<main class="shell-main s5-main">
+  <header class="s5-hero">
+    <div class="s5-hero-copy">
+      <span class="s5-eyebrow"><span class="s5-dot"></span> Stage 2 · Episodic analysis</span>
+      <h1>Episode-by-episode diagnostics</h1>
+      <p>See where each episode earns attention, escalates conflict, shifts emotion, and creates a reason to keep watching. Every rewrite task is a recommendation for human review.</p>
+    </div>
+    <aside class="s5-status-card" id="s5-summary-card" data-state="idle">
+      <span class="s5-status-label">Episodes analysed</span>
+      <strong id="episodes-count">—</strong>
+      <span class="s5-status-hint" id="episodes-subtitle">Waiting for a screenplay</span>
+    </aside>
+  </header>
+
+  <section class="s5-project-bar" aria-label="Analysis controls">
+    <div class="s5-project-field">
+      <label for="concept-select">Approved screenplay project</label>
+      <select id="concept-select"><option value="">Loading projects…</option></select>
+      <small id="project-meta">Choose a concept with an uploaded screenplay.</small>
+    </div>
+    <div class="s5-project-field s5-filter-field">
+      <label for="filter-priority">Rewrite task priority</label>
+      <select id="filter-priority">
+        <option value="ALL">All priorities</option><option value="High">High priority</option>
+        <option value="Medium">Medium priority</option><option value="Low">Low priority</option>
+        <option value="NONE">Episodes without a task</option>
+      </select>
+      <small>Filter the episode cards without rerunning the model.</small>
+    </div>
+    <button id="load-diag-btn" class="s5-primary" type="button">Run episode diagnostics <span aria-hidden="true">→</span></button>
+  </section>
+  <div id="status-div" class="s5-status-message" role="status" aria-live="polite"></div>
+
+  <section id="episodes-display-area" class="s5-empty">
+    <div class="s5-empty-icon">↗</div><h2>Your episode map starts here</h2>
+    <p>Select an approved project and run diagnostics to review hooks, conflict progression, emotional shifts, cliffhangers and continuity payoffs.</p>
+    <div class="s5-empty-pills"><span>Opening hook</span><span>Conflict escalation</span><span>Cliffhanger</span><span>Rewrite tasks</span></div>
+  </section>
+  <footer class="s5-footer"><span>AI-assisted editorial analysis · Human review required</span><a href="/screen/6">Continue to Screen 6: Characters & emotional journey <span aria-hidden="true">→</span></a></footer>
+</main>
+<script>
+(() => {
+  let currentDiagnostics = null;
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const ratingClass = (value) => ({Strong:'strong', Moderate:'moderate', Weak:'weak'}[value] || 'moderate');
+  const setStatus = (message, kind='info') => { $('status-div').innerHTML = message ? `<div class="s5-alert ${kind}">${escapeHtml(message)}</div>` : ''; };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadProjects();
+    $('concept-select').addEventListener('change', updateProjectMeta);
+    $('load-diag-btn').addEventListener('click', runAnalysis);
+    $('filter-priority').addEventListener('change', () => { if (currentDiagnostics) renderEpisodes(currentDiagnostics); });
+  });
+
+  async function loadProjects() {
+    const select = $('concept-select');
+    try {
+      const res = await fetch('/api/screen5/projects');
+      if (!res.ok) throw new Error('Could not load projects.');
+      const projects = await res.json();
+      const ready = projects.filter(p => p.approved && p.screenplay_version != null);
+      if (!ready.length) {
+        select.innerHTML = '<option value="">No approved projects with an uploaded screenplay</option>';
+        $('project-meta').textContent = 'Approve a concept and upload its screenplay before running Screen 5.';
+        return;
+      }
+      select.innerHTML = ready.map(p => `<option value="${escapeHtml(p.id)}" data-version="${escapeHtml(p.screenplay_version)}" data-title="${escapeHtml(p.screenplay_title || p.title)}">${escapeHtml(p.title)} · v${escapeHtml(p.screenplay_version)}</option>`).join('');
+      updateProjectMeta();
+    } catch (err) {
+      select.innerHTML = '<option value="">Unable to load projects</option>';
+      setStatus(err.message || 'Unable to load approved projects.', 'error');
+    }
+  }
+
+  function updateProjectMeta() {
+    const option = $('concept-select').selectedOptions[0];
+    if (!option || !option.value) return;
+    $('project-meta').textContent = `${option.dataset.title || 'Screenplay'} · version ${option.dataset.version || '—'}`;
+  }
+
+  async function runAnalysis() {
+    const projectId = $('concept-select').value;
+    if (!projectId) { setStatus('Select an approved project with an uploaded screenplay first.', 'error'); return; }
+    const button = $('load-diag-btn');
+    button.disabled = true;
+    button.innerHTML = '<span class="s5-spinner"></span> Analysing screenplay…';
+    setStatus('Reviewing episode structure, hooks, escalation, emotional shifts and cliffhangers. A cached result may return faster.', 'info');
+    $('episodes-display-area').innerHTML = '<div class="s5-loading"><span class="s5-spinner s5-spinner-large"></span><h2>Building your episode map</h2><p>Analysing the screenplay source. This may take a little while on the first run.</p></div>';
+    try {
+      const res = await fetch(`/api/screen5/analyze/${encodeURIComponent(projectId)}`, {headers:{'X-User-Name':'Writer'}});
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Episode analysis failed.');
+      currentDiagnostics = data;
+      const cacheText = data.cache_hit ? ' · Cached result (0 new tokens)' : '';
+      setStatus(`Analysis complete${cacheText}. Check evidence and review notes before assigning rewrite tasks.`, 'success');
+      $('s5-summary-card').dataset.state = data.review_notes?.length ? 'review' : 'pass';
+      $('episodes-subtitle').textContent = `${data.provider || 'AI'}${data.model ? ` · ${data.model}` : ''}${data.cache_hit ? ' · cache hit' : ''}`;
+      renderEpisodes(data);
+    } catch (err) {
+      $('episodes-display-area').innerHTML = `<div class="s5-empty"><div class="s5-empty-icon">!</div><h2>Analysis could not be completed</h2><p>${escapeHtml(err.message || 'Please try again.')}</p></div>`;
+      setStatus(err.message || 'Episode analysis failed.', 'error');
+      $('s5-summary-card').dataset.state = 'review';
+    } finally {
+      button.disabled = false;
+      button.innerHTML = 'Run episode diagnostics <span aria-hidden="true">→</span>';
+    }
+  }
+
+  function renderEpisodes(data) {
+    $('episodes-count').textContent = data.total_episodes_detected ?? data.episodes?.length ?? '—';
+    const filter = $('filter-priority').value;
+    const all = Array.isArray(data.episodes) ? data.episodes : [];
+    const filtered = all.filter(ep => {
+      const task = ep.rewrite_task;
+      if (filter === 'NONE') return !task;
+      if (filter === 'ALL') return true;
+      return task && task.priority === filter;
+    });
+    if (!filtered.length) {
+      $('episodes-display-area').innerHTML = `<div class="s5-empty"><div class="s5-empty-icon">✓</div><h2>No matching episodes</h2><p>Change the priority filter to see more of this analysis.</p></div>`;
+      return;
+    }
+    const notes = (data.review_notes || []).map(n => `<li>${escapeHtml(n)}</li>`).join('');
+    const notePanel = notes ? `<section class="s5-review-note"><strong>Items to review</strong><ul>${notes}</ul></section>` : '';
+    const cards = filtered.map(ep => {
+      const task = ep.rewrite_task;
+      const taskHtml = task ? `<section class="s5-task"><div class="s5-task-head"><div><span class="s5-kicker">Suggested rewrite task · ${escapeHtml(task.owner || 'Writer')}</span><h4>${escapeHtml(task.proposed_action || 'Review this episode')}</h4></div><span class="s5-priority ${String(task.priority || 'Medium').toLowerCase()}">${escapeHtml(task.priority || 'Medium')} priority</span></div><p><strong>Issue:</strong> ${escapeHtml(task.issue_evidence || 'No issue explanation supplied.')}</p>${task.evidence_excerpt ? `<blockquote>${escapeHtml(task.evidence_excerpt)} <span class="s5-evidence ${task.evidence_verified ? 'verified' : 'unverified'}">${task.evidence_verified ? 'Source verified' : 'Verify source'}</span></blockquote>` : `<p class="s5-unverified">No verifiable source excerpt supplied. Review the issue against the screenplay.</p>`}<p><strong>Success criteria:</strong> ${escapeHtml(task.success_criteria || 'Confirm the revised beat improves clarity or retention.')}</p><span class="s5-task-status">Status: ${escapeHtml(task.status || 'Open')} · Human decision required</span></section>` : `<div class="s5-no-task">No rewrite task proposed for this episode. This does not replace editorial review.</div>`;
+      return `<article class="s5-episode-card"><header class="s5-episode-head"><div class="s5-episode-number">${String(ep.episode_number).padStart(2,'0')}</div><div class="s5-episode-title"><span class="s5-kicker">${escapeHtml(ep.scene_range || 'Location not identified')}</span><h3>${escapeHtml(ep.episode_title || `Episode ${ep.episode_number}`)}</h3></div><div class="s5-rating-stack"><span class="s5-rating ${ratingClass(ep.hook_rating)}">Hook · ${escapeHtml(ep.hook_rating)}</span><span class="s5-rating ${ratingClass(ep.cliffhanger_rating)}">Cliffhanger · ${escapeHtml(ep.cliffhanger_rating)}</span></div></header><div class="s5-hook-grid"><section class="s5-beat s5-beat-hook"><span class="s5-kicker">01 · Opening hook</span><p>${escapeHtml(ep.opening_hook || 'No opening-hook assessment supplied.')}</p></section><section class="s5-beat s5-beat-cliff"><span class="s5-kicker">02 · Ending / cliffhanger</span><p>${escapeHtml(ep.ending_cliffhanger || 'No cliffhanger assessment supplied.')}</p></section></div><div class="s5-detail-grid"><section><h4>Conflict progression</h4><p>${escapeHtml(ep.conflict_progression || 'Not assessed.')}</p></section><section><h4>Emotional shift</h4><p>${escapeHtml(ep.emotional_shift || 'Not assessed.')}</p></section><section class="s5-continuity"><h4>Continuity & payoffs</h4><p>${escapeHtml(ep.continuity_payoffs || 'Not assessed.')}</p></section></div>${taskHtml}</article>`;
+    }).join('');
+    $('episodes-display-area').innerHTML = `${notePanel}<div class="s5-results-head"><div><span class="s5-kicker">SCREENPLAY DIAGNOSTICS</span><h2>Episode map</h2><p>${filtered.length} of ${all.length} episodes shown · Review suggested tasks before assigning them.</p></div><div class="s5-token-meta">${data.input_tokens == null ? 'Token usage unavailable' : `${Number(data.input_tokens).toLocaleString()} input tokens`} · ${data.output_tokens == null ? '—' : `${Number(data.output_tokens).toLocaleString()} output tokens`}</div></div><div class="s5-episode-list">${cards}</div><a class="s5-next-link" href="/screen/6"><span><strong>Continue to Screen 6</strong><small>Characters, relationships & emotional journey</small></span><span>→</span></a>`;
+  }
+})();
+</script>
+</body>
+</html>

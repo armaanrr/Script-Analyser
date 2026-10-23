@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rocket Reels — Editorial Gates & Intensity</title>
+  <link rel="stylesheet" href="/static/App.css">
+  <script src="/static/Shell.js?v=3" defer></script>
+</head>
+<body class="screen4-page">
+  <main class="shell-main s4-main">
+    <header class="s4-hero">
+      <div class="s4-hero-copy">
+        <span class="s4-eyebrow"><span class="s4-dot"></span> SCREEN 04 · EDITORIAL REVIEW</span>
+        <h1>Mandatory gates &amp; intensity meters</h1>
+        <p>Surface policy risks, check screenplay completeness and map the emotional intensity of key story beats before episode-level diagnostics.</p>
+      </div>
+      <div class="s4-status-card" id="overall-gate-badge" aria-live="polite">
+        <span class="s4-status-label">Overall gate status</span>
+        <strong id="overall-status-text">Not evaluated</strong>
+        <span class="s4-status-hint" id="overall-status-hint">Choose an approved project to begin</span>
+      </div>
+    </header>
+
+    <section class="s4-project-bar panel">
+      <div class="s4-project-field">
+        <label for="concept-select">Approved screenplay project</label>
+        <select id="concept-select"><option value="">Loading projects…</option></select>
+        <small id="project-meta">Only approved concepts with a screenplay can be analysed.</small>
+      </div>
+      <button id="load-gates-btn" class="btn s4-primary" type="button"><span aria-hidden="true">✦</span> Evaluate screenplay</button>
+    </section>
+    <div id="status-div" class="s4-status-message" role="status" aria-live="polite"></div>
+
+    <section id="gates-display-area" class="s4-empty panel">
+      <div class="s4-empty-icon">✓</div>
+      <h2>Ready for editorial review</h2>
+      <p>Select an approved project, then run the analysis to view the mandatory gates and intensity meters.</p>
+      <div class="s4-empty-pills"><span>Policy checks</span><span>Evidence excerpts</span><span>Intensity scoring</span></div>
+    </section>
+    <footer class="s4-footer"><span>AI-assisted editorial review · Human approval required</span><a href="/screen/5">Continue to Episode Diagnostics <span aria-hidden="true">→</span></a></footer>
+  </main>
+<script>
+(() => {
+  const select = document.getElementById('concept-select');
+  const button = document.getElementById('load-gates-btn');
+  const statusDiv = document.getElementById('status-div');
+  const display = document.getElementById('gates-display-area');
+  const statusText = document.getElementById('overall-status-text');
+  const statusHint = document.getElementById('overall-status-hint');
+  const badge = document.getElementById('overall-gate-badge');
+  let projects = [];
+  const esc = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const score = (value) => Number.isFinite(Number(value)) ? Number(value).toFixed(1) : '—';
+  const statusClass = (value) => value === 'Pass' ? 'pass' : (value === 'Blocked' ? 'blocked' : 'review');
+
+  async function loadProjects() {
+    try {
+      const response = await fetch('/api/screen4/projects');
+      if (!response.ok) throw new Error('Could not load projects. Refresh and try again.');
+      const all = await response.json();
+      projects = all.filter(p => p.approved && p.screenplay_version !== null);
+      if (!projects.length) {
+        select.innerHTML = '<option value="">No approved screenplay projects found</option>';
+        setMessage('Approve a concept on Screen 1 and upload a screenplay on Screen 2 before running Screen 4.', 'info');
+        button.disabled = true;
+        return;
+      }
+      select.innerHTML = projects.map(p => `<option value="${esc(p.id)}">${esc(p.title || `Concept #${p.id}`)} · v${esc(p.screenplay_version)}</option>`).join('');
+      updateProjectMeta();
+    } catch (error) {
+      select.innerHTML = '<option value="">Unable to load projects</option>';
+      setMessage(error.message || 'Unable to load projects.', 'error');
+    }
+  }
+
+  function updateProjectMeta() {
+    const project = projects.find(p => String(p.id) === select.value);
+    document.getElementById('project-meta').textContent = project
+      ? `${project.screenplay_title || project.title} · Version ${project.screenplay_version}${project.parse_status ? ` · Extraction ${project.parse_status}` : ''}`
+      : 'Only approved concepts with a screenplay can be analysed.';
+  }
+  function setMessage(message, type = 'info') {
+    statusDiv.innerHTML = `<div class="s4-alert ${type}">${esc(message)}</div>`;
+  }
+  function list(items, empty = 'No supporting beats returned.') {
+    const values = Array.isArray(items) ? items : [];
+    return values.length ? `<ul class="s4-beat-list">${values.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : `<p class="s4-muted">${esc(empty)}</p>`;
+  }
+  function renderGates(data) {
+    statusText.textContent = data.overall_gate_status || 'Review Required';
+    badge.dataset.state = data.overall_gate_status === 'Pass' ? 'pass' : data.overall_gate_status === 'Blocked' ? 'blocked' : 'review';
+    statusHint.textContent = data.overall_gate_status === 'Pass' ? 'Automated gates passed; sign-off is still required' : data.overall_gate_status === 'Blocked' ? 'Escalate blocking risks before proceeding' : 'Review the flagged items and obtain human sign-off';
+    const gates = (data.gates || []).map(g => `
+      <article class="s4-gate-card">
+        <div class="s4-gate-top"><div><span class="s4-gate-kicker">MANDATORY GATE</span><h3>${esc(g.label)}</h3></div><span class="s4-pill ${statusClass(g.status)}">${esc(g.status)}</span></div>
+        <p>${esc(g.summary)}</p>
+        ${(g.flagged_scenes || []).length ? `<div class="s4-flag-list">${g.flagged_scenes.map(f => `<div class="s4-flag"><div class="s4-flag-head"><strong>${esc(f.episode_id || 'Location not identified')}</strong><span class="s4-evidence ${f.evidence_verified ? 'verified' : 'unverified'}">${f.evidence_verified ? 'Source verified' : 'Verify manually'}</span></div>${f.quote_excerpt ? `<blockquote>“${esc(f.quote_excerpt)}”</blockquote>` : ''}<p>${esc(f.issue_description)}</p></div>`).join('')}</div>` : ''}
+      </article>`).join('');
+    const meters = [
+      {title:'Cringe & embarrassment', item:data.cringe_meter, desc:'Awkwardness and second-hand embarrassment'},
+      {title:'Humiliation & reversal', item:data.humiliation_meter, desc:'Social degradation, power shifts and reversals'},
+      {title:'High-romance intensity', item:data.high_romance_meter, desc:'Chemistry, devotion and emotional vulnerability'}
+    ];
+    const meterHtml = meters.map(m => {
+      const value = Math.max(0, Math.min(10, Number(m.item?.score) || 0));
+      return `<article class="s4-meter-card"><div class="s4-meter-head"><div><h3>${esc(m.title)}</h3><p>${esc(m.desc)}</p></div><strong>${score(value)}<small>/10</small></strong></div><div class="s4-meter-track"><span style="width:${value * 10}%"></span></div>${list(m.item?.supporting_beats)}</article>`;
+    }).join('');
+    const romance = data.high_romance_meter?.top_moments || [];
+    const romanceHtml = romance.length ? romance.map((m, i) => `<article class="s4-romance-card"><span class="s4-romance-number">${String(i + 1).padStart(2,'0')}</span><div class="s4-romance-body"><div class="s4-romance-meta"><strong>${esc(m.episode_scene || 'Location not identified')}</strong><span class="s4-evidence ${m.evidence_verified ? 'verified' : 'unverified'}">${m.evidence_verified ? 'Source verified' : 'Verify manually'}</span></div>${m.quote_excerpt ? `<blockquote>“${esc(m.quote_excerpt)}”</blockquote>` : '<p class="s4-muted">No verified source excerpt returned.</p>'}<p>${esc(m.emotional_punch)}</p></div></article>`).join('') : '<p class="s4-muted">No high-romance moments returned. Review the screenplay manually.</p>';
+    const notes = data.review_notes || [];
+    display.className = 's4-results';
+    display.innerHTML = `
+      <div class="s4-results-heading"><div><span class="s4-eyebrow">ANALYSIS RESULTS</span><h2>Editorial risk overview</h2><p>Use these findings as review signals, not a substitute for legal or creative approval.</p></div><div class="s4-run-meta"><span>${data.cache_hit ? 'Cached result · no new model tokens' : 'Fresh model analysis'}</span><small>${esc(data.provider || 'AI provider')} · ${esc(data.model || 'model not reported')} · Script v${esc(data.screenplay_version)}</small>${data.input_tokens != null || data.output_tokens != null ? `<small>Input ${esc(data.input_tokens ?? '—')} tokens · Output ${esc(data.output_tokens ?? '—')} tokens</small>` : ''}</div></div>
+      <div class="s4-results-grid"><section class="s4-panel"><div class="s4-section-head"><div><span class="s4-eyebrow">01 · COMPLIANCE</span><h2>Mandatory quality gates</h2></div><span class="s4-count">${(data.gates || []).length} gates</span></div><div class="s4-gate-list">${gates}</div></section>
+      <section class="s4-panel"><div class="s4-section-head"><div><span class="s4-eyebrow">02 · STORY FEEL</span><h2>Intensity meters</h2></div><span class="s4-count">0–10 scale</span></div><div class="s4-meter-list">${meterHtml}</div></section></div>
+      <section class="s4-panel s4-romance-panel"><div class="s4-section-head"><div><span class="s4-eyebrow">03 · EMOTIONAL BEATS</span><h2>High-romance moments</h2><p>Source excerpts are checked against the uploaded screenplay.</p></div><span class="s4-count">${romance.length} moments</span></div><div class="s4-romance-list">${romanceHtml}</div></section>
+      ${notes.length ? `<section class="s4-panel s4-review-panel"><h2>Items requiring human verification</h2><ul>${notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></section>` : ''}
+      <div class="s4-human-note"><span class="s4-human-icon">!</span><div><strong>Human sign-off is still required</strong><p>AI cannot approve policy compliance, establish legal originality, or replace the producer’s final editorial decision. Review every flagged item and source excerpt.</p></div></div>
+      <a class="s4-next-link" href="/screen/5"><span><strong>Continue to Screen 5</strong><small>Episode diagnostics &amp; retention analysis</small></span><span aria-hidden="true">→</span></a>`;
+  }
+
+  button.addEventListener('click', async () => {
+    if (!select.value) { setMessage('Select an approved project with a screenplay first.', 'info'); return; }
+    button.disabled = true;
+    button.innerHTML = '<span class="s4-spinner"></span> Evaluating screenplay…';
+    setMessage('Reviewing policy gates, script completeness and emotional intensity. Large scripts may take a little longer.', 'info');
+    display.className = 's4-empty s4-loading panel';
+    display.innerHTML = '<div class="s4-spinner s4-spinner-large"></div><h2>Reading the screenplay</h2><p>Checking editorial gates and tracing intensity findings to source evidence.</p>';
+    try {
+      const response = await fetch(`/api/screen4/analyze/${encodeURIComponent(select.value)}`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || 'Screenplay evaluation failed.');
+      renderGates(data);
+      setMessage(data.cache_hit ? 'Loaded a matching saved analysis. No new model call was needed.' : 'Evaluation complete. Please review the evidence and outstanding sign-off.', 'success');
+    } catch (error) {
+      setMessage(error.message || 'Unexpected error while evaluating screenplay.', 'error');
+      display.className = 's4-empty panel';
+      display.innerHTML = '<div class="s4-empty-icon">!</div><h2>Analysis could not be completed</h2><p>Check that the concept is approved, a screenplay is available, and your configured AI provider is ready. Then try again.</p>';
+    } finally {
+      button.disabled = false;
+      button.innerHTML = '<span aria-hidden="true">✦</span> Evaluate screenplay';
+    }
+  });
+  select.addEventListener('change', updateProjectMeta);
+  loadProjects();
+})();
+</script>
+</body>
+</html>

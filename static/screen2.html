@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rocket Reels — Screen 02: Executive Overview & Genre</title>
+  <link rel="stylesheet" href="/static/App.css">
+  <script src="/static/Shell.js" defer></script>
+</head>
+<body>
+  <main class="shell-main screen2-main">
+    <header class="page-head screen2-head">
+      <div>
+        <div class="crumb"><span class="chip info">SCREEN 02</span><span>Screenplay intelligence</span></div>
+        <h1>Executive Overview <span class="heading-and">&</span> Genre</h1>
+        <p class="sub">Understand what the completed screenplay is saying, how it is structured, and which genre it actually supports.</p>
+      </div>
+      <div id="head-actions"></div>
+    </header>
+
+    <section class="s2-workflow" aria-label="Screen 2 workflow">
+      <div class="s2-step s2-step-done"><span>01</span><div><b>Concept approval</b><small>Approved concept selected</small></div><i>✓</i></div>
+      <div class="s2-step s2-step-current"><span>02</span><div><b>Overview & genre</b><small>Current screen</small></div></div>
+      <div class="s2-step"><span>03</span><div><b>Scorecard</b><small>Next: 16 dimensions</small></div></div>
+    </section>
+
+    <div class="s2-layout">
+      <section class="panel s2-upload-panel">
+        <div class="panel-heading">
+          <div><span class="s2-eyebrow">START ANALYSIS</span><h2>Screenplay submission</h2></div>
+          <span class="s2-icon" aria-hidden="true">↑</span>
+        </div>
+        <p class="panel-intro">Choose the concept already approved on Screen 1, then upload the screenplay. AI analysis runs only when you submit this form.</p>
+        <form id="upload-form" class="s2-form">
+          <div class="s2-field">
+            <label for="concept-select">Approved concept <span class="required-mark">*</span></label>
+            <select id="concept-select" required><option value="">Loading approved concepts…</option></select>
+            <small>Only concepts with an approval decision are listed.</small>
+          </div>
+          <div class="s2-field">
+            <label for="screenplay-title">Screenplay title <span class="required-mark">*</span></label>
+            <input type="text" id="screenplay-title" maxlength="200" required placeholder="e.g. Raziya Bani IAS — Draft 1">
+          </div>
+          <section class="s2-structure-box" aria-labelledby="structure-title">
+            <div class="s2-structure-heading"><span class="s2-eyebrow">STRUCTURE SETTINGS</span><h3 id="structure-title">Episode structure setup</h3></div>
+            <div class="s2-field">
+              <label for="expected-episodes">Number of episodes</label>
+              <input type="number" id="expected-episodes" min="1" max="500" value="1" required>
+              <small>Enter how many episodes this document represents. If headings are absent, the tool uses this as your declared episode count.</small>
+            </div>
+            <div class="s2-field">
+              <label for="scene-marking">Scene headings in the script</label>
+              <select id="scene-marking">
+                <option value="marked">Yes — scene headings are present</option>
+                <option value="unmarked" selected>No — scenes are not marked</option>
+              </select>
+              <small>If scene headings are absent, the tool can create provisional text sections for review. These are not verified dramatic scene boundaries.</small>
+            </div>
+            <div class="s2-field">
+              <label for="scene-allocation">Scene allocation</label>
+              <select id="scene-allocation"><option value="auto">Use all extracted scenes without a fixed target</option><option value="fixed" selected>Use a target number of scenes per episode</option></select>
+            </div>
+            <div class="s2-field" id="target-scenes-field">
+              <label for="target-scenes">Target scenes per episode</label>
+              <input type="number" id="target-scenes" min="1" max="100" value="3" required>
+              <small>This is a target, not a hard limit. The tool keeps all extracted scenes and flags any mismatch for review.</small>
+            </div>
+            <p class="s2-structure-note" id="structure-preview" role="status">Current target: 1 episode × 3 scenes = 3 scenes. If more scenes are extracted, none will be discarded.</p>
+          </section>
+          <div class="s2-field">
+            <label for="screenplay-file">Screenplay file <span class="required-mark">*</span></label>
+            <label class="s2-dropzone" for="screenplay-file">
+              <span class="s2-upload-symbol" aria-hidden="true">↥</span>
+              <strong id="file-label">Choose a screenplay file</strong>
+              <span>PDF, DOCX or TXT</span>
+              <input type="file" id="screenplay-file" required accept=".txt,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
+            </label>
+            <small>Text-based PDFs work best. Scanned PDFs may need OCR before upload.</small>
+          </div>
+          <button type="submit" class="btn amber s2-submit" id="upload-btn"><span>Analyse screenplay</span><span aria-hidden="true">→</span></button>
+          <p class="s2-cost-note"><span aria-hidden="true">✦</span> Repeat uploads of an unchanged screenplay can reuse a cached classification and avoid another AI charge.</p>
+        </form>
+        <div id="upload-status" role="status" aria-live="polite"></div>
+      </section>
+
+      <section id="screenplay-results" class="s2-results" aria-live="polite">
+        <div class="panel s2-empty-state">
+          <div class="s2-empty-art" aria-hidden="true"><span>R</span><i></i><b></b></div>
+          <span class="s2-eyebrow">YOUR DEVELOPMENT BRIEF</span>
+          <h2>The story, at a glance.</h2>
+          <p>Your executive overview and AI-detected genre will appear here after you analyse a screenplay.</p>
+          <div class="s2-preview-list"><div><span>01</span><p><b>Story engine</b><small>What keeps the episodes moving</small></p></div><div><span>02</span><p><b>Genre classification</b><small>Primary genre, subgenre and confidence</small></p></div><div><span>03</span><p><b>Structure check</b><small>Episode and scene extraction quality</small></p></div></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+      const userHeaders = () => ({'X-User-Name': localStorage.getItem('rr_name') || 'Producer', 'X-User-Role': localStorage.getItem('rr_role') || 'producer'});
+
+      document.addEventListener('DOMContentLoaded', () => {
+        loadApprovedConcepts();
+        $('screenplay-file').addEventListener('change', () => {
+          $('file-label').textContent = $('screenplay-file').files?.[0]?.name || 'Choose a screenplay file';
+        });
+        $('upload-form').addEventListener('submit', analyseScreenplay);
+        function updateStructurePreview() {
+          const episodes = Math.max(1, Number($('expected-episodes').value || 1));
+          const target = Math.max(1, Number($('target-scenes').value || 3));
+          const fixed = $('scene-allocation').value === 'fixed';
+          $('target-scenes-field').hidden = !fixed;
+          $('structure-preview').textContent = fixed
+            ? `Current target: ${episodes} episode${episodes === 1 ? '' : 's'} × ${target} scenes = ${episodes * target} scenes. If more scenes are extracted, none will be discarded.`
+            : 'No fixed scene target is applied. All extracted scenes are retained for review.';
+        }
+        ['expected-episodes','target-scenes','scene-allocation','scene-marking'].forEach(id => $(id).addEventListener('input', updateStructurePreview));
+        $('scene-allocation').addEventListener('change', updateStructurePreview);
+        updateStructurePreview();
+      });
+
+      async function loadApprovedConcepts() {
+        const select = $('concept-select');
+        try {
+          const res = await fetch('/api/concepts', {headers: userHeaders()});
+          if (!res.ok) throw new Error('Could not load concepts. Refresh the page and try again.');
+          const concepts = await res.json();
+          const approved = concepts.filter(c => ['approve_to_screenplay','approve','approved'].includes(String(c.latest_decision || c.status || c.decision || '').toLowerCase()));
+          if (!approved.length) {
+            select.innerHTML = '<option value="">No approved concepts found</option>';
+            $('upload-status').innerHTML = '<div class="s2-alert s2-alert-info">Approve a concept on Screen 1 before starting screenplay analysis.</div>';
+            return;
+          }
+          select.innerHTML = '<option value="">Select an approved concept</option>' + approved.map(c => {
+            const title = c.title || c.working_title || `Concept #${c.id}`;
+            return `<option value="${escapeHTML(c.id)}">${escapeHTML(title)} · #${escapeHTML(c.id)}</option>`;
+          }).join('');
+        } catch (err) {
+          select.innerHTML = '<option value="">Unable to load approved concepts</option>';
+          $('upload-status').innerHTML = `<div class="s2-alert s2-alert-error">${escapeHTML(err.message)}</div>`;
+        }
+      }
+
+      async function analyseScreenplay(event) {
+        event.preventDefault();
+        const file = $('screenplay-file').files?.[0];
+        const conceptId = $('concept-select').value;
+        const title = $('screenplay-title').value.trim();
+        if (!conceptId || !file || !title) {
+          $('upload-status').innerHTML = '<div class="s2-alert s2-alert-error">Select an approved concept, enter a title, and choose a screenplay file.</div>';
+          return;
+        }
+        const allowed = /\.(txt|pdf|docx)$/i.test(file.name);
+        if (!allowed) {
+          $('upload-status').innerHTML = '<div class="s2-alert s2-alert-error">Please upload a PDF, DOCX or TXT file.</div>';
+          return;
+        }
+        const formData = new FormData();
+        formData.append('concept_id', conceptId);
+        formData.append('title', title);
+        if ($('expected-episodes').value) formData.append('expected_episodes', $('expected-episodes').value);
+        formData.append('scene_marking', $('scene-marking').value);
+        formData.append('scene_allocation', $('scene-allocation').value);
+        formData.append('target_scenes_per_episode', $('target-scenes').value || '3');
+        formData.append('file', file);
+
+        const button = $('upload-btn');
+        button.disabled = true;
+        button.innerHTML = '<span class="s2-spinner"></span><span>Parsing screenplay & analysing…</span>';
+        $('upload-status').innerHTML = '<div class="s2-alert s2-alert-info">Extracting the full screenplay, checking scene headings and preparing any provisional sections before classification.</div>';
+        $('screenplay-results').innerHTML = '<div class="panel s2-loading"><div class="s2-spinner s2-spinner-large"></div><h2>Building your executive overview</h2><p>Checking episode boundaries, genre signals and story engine.</p></div>';
+
+        try {
+          const res = await fetch('/api/screen2/analyze', {method:'POST', headers:userHeaders(), body:formData});
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.detail || `Analysis failed (HTTP ${res.status}).`);
+          $('upload-status').innerHTML = data.cache_hit
+            ? '<div class="s2-alert s2-alert-success">Cached classification reused — no new AI generation call was needed.</div>'
+            : '<div class="s2-alert s2-alert-success">Analysis complete. Review the findings before moving to the scorecard.</div>';
+          renderResults(data);
+        } catch (err) {
+          $('upload-status').innerHTML = `<div class="s2-alert s2-alert-error">${escapeHTML(err.message || 'Unexpected error. Please try again.')}</div>`;
+          $('screenplay-results').innerHTML = `<div class="panel s2-error-state"><span class="s2-eyebrow">ANALYSIS NOT COMPLETED</span><h2>We couldn't finish this run.</h2><p>${escapeHTML(err.message || 'Unexpected error.')}</p><p class="sub">Your file may contain no extractable text, or the configured AI provider may not be available.</p></div>`;
+        } finally {
+          button.disabled = false;
+          button.innerHTML = '<span>Analyse screenplay</span><span aria-hidden="true">→</span>';
+        }
+      }
+
+      function metric(value, label, hint='') {
+        return `<div class="s2-metric"><strong>${escapeHTML(value)}</strong><span>${escapeHTML(label)}</span>${hint ? `<small>${escapeHTML(hint)}</small>` : ''}</div>`;
+      }
+
+      function renderResults(data) {
+        const warnings = Array.isArray(data.parse_warnings) ? data.parse_warnings : [];
+        const genres = Array.isArray(data.ai_secondary_genre_elements) ? data.ai_secondary_genre_elements : [];
+        const patterns = Array.isArray(data.narrative_patterns) ? data.narrative_patterns : [];
+        const alternatives = Array.isArray(data.alternative_classifications) ? data.alternative_classifications : [];
+        const evidence = Array.isArray(data.evidence) ? data.evidence : [];
+        const parseStatus = String(data.parse_status || 'unknown').toLowerCase();
+        const statusClass = parseStatus === 'ok' ? 's2-status-good' : 's2-status-warn';
+        const genreMatch = String(data.genre_match || 'Not specified');
+        const cacheLabel = data.cache_hit ? 'Cached result' : 'Fresh AI run';
+        const score = data.full_score == null ? 'Pending' : `${Math.round(Number(data.full_score))}/100`;
+        $('screenplay-results').innerHTML = `
+          <article class="panel s2-overview-card">
+            <div class="s2-result-top"><div><span class="s2-eyebrow">EXECUTIVE OVERVIEW</span><h2>${escapeHTML(data.title || 'Screenplay assessment')}</h2><p class="s2-result-meta">Screenplay #${escapeHTML(data.screenplay_id)} · ${escapeHTML(data.provider || 'AI')} · ${escapeHTML(cacheLabel)}</p></div><span class="s2-status ${statusClass}">${escapeHTML(parseStatus.replaceAll('_',' '))}</span></div>
+            <div class="s2-metrics">${metric(data.detected_episodes ?? '—','Episodes detected', data.expected_episodes ? `Expected ${data.expected_episodes}` : 'From screenplay structure')}${metric(Number(data.word_count || 0).toLocaleString(),'Words extracted')}${metric(Number(data.scene_count || 0).toLocaleString(),'Scenes detected')}${metric(score,'Screenplay score','Detailed rubric on Screen 3')}</div>
+            <div class="s2-section-heading"><div><span class="s2-eyebrow">AI CLASSIFICATION</span><h3>Genre & subgenre</h3></div><span class="s2-confidence">${escapeHTML(data.confidence || 'Confidence n/a')} confidence</span></div>
+            <div class="s2-genre-grid"><div class="s2-genre-primary"><small>PRIMARY GENRE</small><strong>${escapeHTML(data.ai_primary_genre || 'Not determined')}</strong><span>AI-detected from screenplay content</span></div><div class="s2-genre-secondary"><small>SUBGENRE</small><strong>${escapeHTML(data.ai_subgenre || 'Not determined')}</strong><span>Specific story and trope blend</span></div></div>
+            <div class="s2-tag-row">${genres.length ? genres.map(g => `<span class="s2-tag">${escapeHTML(g)}</span>`).join('') : '<span class="s2-muted">No secondary genre elements returned.</span>'}</div>
+            ${data.ambiguity_note ? `<div class="s2-note"><b>Classification ambiguity</b><p>${escapeHTML(data.ambiguity_note)}</p></div>` : ''}
+            <div class="s2-compare"><div><small>DECLARED IN SCRIPT</small><strong>${escapeHTML(data.declared_genre || 'Not specified')}</strong><span>${escapeHTML(data.declared_subgenre || 'Subgenre not specified')}</span></div><div class="s2-compare-arrow" aria-hidden="true">↔</div><div><small>AI CLASSIFICATION CHECK</small><strong>${escapeHTML(genreMatch)}</strong><span>Human review is recommended before finalising labels.</span></div></div>
+          </article>
+          <article class="panel s2-story-card"><div class="s2-section-heading"><div><span class="s2-eyebrow">THE STORY ENGINE</span><h3>What keeps the drama moving?</h3></div><span class="s2-story-mark" aria-hidden="true">✦</span></div>
+            <div class="s2-story-field"><small>CENTRAL CONFLICT</small><p>${escapeHTML(data.central_conflict || 'No central conflict summary returned.')}</p></div>
+            <div class="s2-story-columns"><div class="s2-story-field"><small>STORY ENGINE</small><p>${escapeHTML(data.story_engine || 'Not available')}</p></div><div class="s2-story-field"><small>RELATIONSHIP DYNAMICS</small><p>${escapeHTML(data.relationship_dynamics || 'Not available')}</p></div><div class="s2-story-field"><small>TONE</small><p>${escapeHTML(data.tone || 'Not available')}</p></div></div>
+            ${patterns.length ? `<div class="s2-patterns"><small>NARRATIVE PATTERNS</small><div class="s2-tag-row">${patterns.map(x => `<span class="s2-tag s2-tag-blue">${escapeHTML(x)}</span>`).join('')}</div></div>` : ''}
+            ${alternatives.length ? `<details class="s2-details"><summary>Alternative genre interpretations (${alternatives.length})</summary><ul>${alternatives.map(x => `<li>${escapeHTML(x)}</li>`).join('')}</ul></details>` : ''}
+          </article>
+          <article class="panel s2-structure-card"><div class="s2-section-heading"><div><span class="s2-eyebrow">EXTRACTION QUALITY</span><h3>Structure check</h3></div><span class="s2-status ${warnings.length ? 's2-status-warn' : 's2-status-good'}">${warnings.length ? `${warnings.length} flag(s)` : 'No flags'}</span></div>
+            ${warnings.length ? `<ul class="s2-warning-list">${warnings.map(w => `<li><b>${escapeHTML(w.episode_id || 'Structure')}</b><span>${escapeHTML(w.message || 'Review extraction.')}</span></li>`).join('')}</ul>` : '<p class="s2-clean-note">The parser did not detect structural warnings. Review the episode count against the submitted draft before proceeding.</p>'}
+            ${evidence.length ? `<details class="s2-details"><summary>View supporting evidence (${evidence.length} excerpts)</summary><div class="s2-evidence-list">${evidence.map(e => `<blockquote><p>“${escapeHTML(e.quote || '')}”</p><small>${escapeHTML(e.episode_id || 'Episode')} ${e.scene_id ? `· ${escapeHTML(e.scene_id)}` : ''} · ${e.verified ? 'Quote verified' : 'Needs source review'}</small><span>${escapeHTML(e.supports || '')}</span></blockquote>`).join('')}</div></details>` : ''}
+            <div class="s2-result-footer"><span>Provider: ${escapeHTML(data.provider || '—')} · Model: ${escapeHTML(data.model || '—')}</span><span>${data.cache_hit ? '0 new tokens billed for classification' : `Tokens reported: ${escapeHTML(data.input_tokens ?? 'n/a')} in / ${escapeHTML(data.output_tokens ?? 'n/a')} out`}</span></div>
+            <a class="btn amber s2-next-button" href="/screen/3">Continue to Screen 03: Full Scorecard <span aria-hidden="true">→</span></a>
+          </article>`;
+      }
+    })();
+  </script>
+</body>
+</html>

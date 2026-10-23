@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rocket Reels - Screen 08: Promo Assets, Season Strategy & Casting Fit</title>
+  <link rel="stylesheet" href="/static/App.css">
+  <script src="/static/Shell.js?v=2" defer></script>
+</head>
+<body>
+  <main class="shell-main">
+    <header class="header-section" style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <span class="badge-green">Stage 2 · Commercial & Casting Strategy</span>
+        <h1 class="page-title">Screen 08: Promo Assets, Season Strategy & Casting Fit</h1>
+        <p class="sub" style="color: var(--text-muted);">Extract marketable promotional assets, assess sequel viability, and evaluate casting candidates with audit-tracked decisions.</p>
+      </div>
+      <div class="card" style="padding: 12px 24px; text-align: center; border-left: 4px solid var(--brand-blue);">
+        <div style="font-size: 1.4rem; font-weight: 800; color: var(--bg-dark);" id="strategy-recommendation">--</div>
+        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Franchise Recommendation</div>
+      </div>
+    </header>
+
+    <!-- Selection Bar -->
+    <div class="card" style="margin-top: 16px; padding: 16px;">
+      <div class="row" style="display: flex; gap: 16px; align-items: center;">
+        <div style="flex: 1;">
+          <label for="concept-select" style="font-weight: 600; display: block; margin-bottom: 6px;">Select Approved Screenplay Project *</label>
+          <select id="concept-select" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--line);">
+            <option value="">Loading approved concepts...</option>
+          </select>
+        </div>
+        <button id="load-promo-btn" class="btn amber" style="margin-top: 22px;">
+          Extract Assets & Evaluate Casting
+        </button>
+      </div>
+      <div id="status-div" style="margin-top: 10px;"></div>
+    </div>
+
+    <!-- MAIN DISPLAY AREA -->
+    <div id="promo-display-area" style="margin-top: 20px;">
+      <div class="card">
+        <p style="color: var(--text-muted); text-align: center;">Select an approved project above and click "Extract Assets & Evaluate Casting" to view analysis.</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let currentData = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadConcepts();
+
+      document.getElementById("load-promo-btn").addEventListener("click", async () => {
+        const conceptId = document.getElementById("concept-select").value;
+        const statusDiv = document.getElementById("status-div");
+        const btn = document.getElementById("load-promo-btn");
+
+        if (!conceptId) {
+          statusDiv.innerHTML = `<div class="chip info">Approval Pending</div>`;
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = "Extracting Assets & Evaluating Casting...";
+        statusDiv.innerHTML = `<div class="note">Parsing all scenes for promotional moments, verbatim dialogue, Season 2 engine, and candidate fit...</div>`;
+
+        try {
+          const res = await fetch(`/api/screen8/analyze/${conceptId}`);
+
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.detail || "Approval Pending");
+          }
+
+          const data = await res.json();
+          currentData = data;
+          const usage = `${data.provider || 'Provider'} · ${data.model || 'configured model'} · ${data.cache_hit ? 'cached · 0 new tokens' : `${data.input_tokens ?? '—'} input / ${data.output_tokens ?? '—'} output tokens`}`;
+          statusDiv.innerHTML = `<div class="chip ok">✓ Analysis complete</div><div class="note">${escapeHtml(usage)}</div>`;
+          renderPromoAndCasting(escapeObject(data), conceptId);
+
+        } catch (err) {
+          console.error("Screen 08 Error:", err);
+          statusDiv.innerHTML = `<div class="chip info" style="margin-top:8px; font-weight:600;">${escapeHtml(err.message || "Analysis failed. Check approval and screenplay upload.")}</div>`;
+        } finally {
+          btn.disabled = false;
+          btn.innerText = "Extract Assets & Evaluate Casting";
+        }
+      });
+    });
+
+    async function loadConcepts() {
+      const selectEl = document.getElementById("concept-select");
+      try {
+        const res = await fetch("/api/concepts");
+        const concepts = await res.json();
+
+        const approved = concepts.filter(c => {
+          const status = c.latest_decision || c.status || c.decision;
+          return status === 'approve_to_screenplay' || status === 'approved' || status === 'approve';
+        });
+
+        if (!Array.isArray(approved) || approved.length === 0) {
+          selectEl.innerHTML = `<option value="">No approved concepts found. Approve a concept on Screen 1 first.</option>`;
+          return;
+        }
+
+        selectEl.innerHTML = approved.map(c => {
+          const title = c.title || c.working_title || `Concept #${c.id}`;
+          return `<option value="${escapeHtml(c.id)}">${escapeHtml(title)} (Concept #${escapeHtml(c.id)})</option>`;
+        }).join("");
+
+        if (approved.length > 0) {
+          selectEl.value = approved[0].id;
+        }
+      } catch (err) {
+        selectEl.innerHTML = `<option value="">Failed to load concepts</option>`;
+      }
+    }
+
+    function renderPromoAndCasting(data, conceptId) {
+      document.getElementById("strategy-recommendation").innerText = data.season_strategy.recommendation;
+      const displayArea = document.getElementById("promo-display-area");
+
+      // 1. Promotional Scenes Cards
+      const scenesHtml = data.promo_scenes.map((ps, idx) => {
+        const riskClass = ps.spoiler_risk === 'High' ? 'chip info' : 'chip ok';
+        return `
+          <div style="background: #f8fafc; padding: 14px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--line);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong>Asset #${idx + 1} (${ps.scene_ref}): ${ps.intended_use}</strong>
+              <span class="${riskClass}">Spoiler Risk: ${ps.spoiler_risk}</span>
+            </div>
+            <div style="font-size:0.88rem; margin-top:6px;"><strong>Context:</strong> ${ps.context}</div>
+            <div style="font-size:0.88rem; margin-top:4px; color:var(--brand-blue);"><strong>Emotional Punch:</strong> ${ps.emotional_punch}</div>
+          </div>
+        `;
+      }).join("");
+
+      // 2. Verbatim Dialogue Cards
+      const dialogueHtml = data.verbatim_dialogues.map((vd, idx) => {
+        const riskClass = vd.spoiler_risk === 'High' ? 'chip info' : 'chip ok';
+        return `
+          <div style="background: rgba(104, 209, 237, 0.08); padding: 14px; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid var(--brand-blue);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong>Line #${idx + 1} — ${vd.speaker} (${vd.scene_ref})</strong>
+              <span class="${riskClass}">Spoiler: ${vd.spoiler_risk}</span>
+            </div>
+            <div style="font-style:italic; font-size:1rem; margin-top:6px; color:var(--text-dark);">&ldquo;${vd.quote}&rdquo;</div>
+            <div style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;"><strong>Context:</strong> ${vd.context} | <strong>Impact:</strong> ${vd.emotional_punch}</div>
+          </div>
+        `;
+      }).join("");
+
+      // 3. Season Strategy Cards
+      const strat = data.season_strategy;
+      const strategyHtml = `
+        <div class="card" style="margin-bottom: 20px;">
+          <h2 style="font-size: 1.15rem; margin-bottom: 12px;">Franchise Architecture & Season 2 Strategy</h2>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px;">
+            <div style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--line);">
+              <strong style="color:var(--brand-green);">Resolved Arcs:</strong>
+              <ul style="margin-top:6px; padding-left: 18px; font-size:0.88rem;">
+                ${strat.resolved_arcs.map(a => `<li>${a}</li>`).join("")}
+              </ul>
+            </div>
+            <div style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--line);">
+              <strong style="color:var(--brand-blue);">Open Narrative Threads:</strong>
+              <ul style="margin-top:6px; padding-left: 18px; font-size:0.88rem;">
+                ${strat.open_threads.map(t => `<li>${t}</li>`).join("")}
+              </ul>
+            </div>
+          </div>
+          <div style="font-size: 0.9rem; margin-top: 10px;">
+            <p><strong>Sequel Engine:</strong> ${strat.sequel_engine}</p>
+            <p><strong>Payoff Rationale:</strong> ${strat.ending_payoff_rationale}</p>
+          </div>
+        </div>
+      `;
+
+      // 4. Casting Context
+      const ctx = data.casting_context;
+      const contextHtml = `
+        <div class="card" style="margin-bottom: 20px;">
+          <h2 style="font-size: 1.15rem; margin-bottom: 12px;">Casting Context & Brand Expectation</h2>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size:0.88rem;">
+            <div><strong>Confirmed Genre:</strong> ${ctx.confirmed_genre}</div>
+            <div><strong>Content Positioning:</strong> ${ctx.content_positioning}</div>
+            <div><strong>Language & Dialect:</strong> ${ctx.language_demands}</div>
+            <div><strong>Audience Expectation:</strong> ${ctx.audience_expectation}</div>
+          </div>
+          <div style="margin-top:8px; font-size:0.88rem;"><strong>Role Briefs:</strong> ${ctx.role_brief}</div>
+        </div>
+      `;
+
+      // 5. Candidate Comparison & Human Decision Cards
+      const candidatesHtml = data.candidates.map((c, idx) => {
+        const isDecided = c.current_decision && c.current_decision !== "Under Review";
+        const badgeColor = c.current_decision === "Shortlist" ? "chip ok" : "chip info";
+
+        return `
+          <div class="card" style="margin-bottom: 16px; border-left: 4px solid var(--brand-blue);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <h3 style="margin:0; font-size: 1.15rem;">${c.candidate_name}</h3>
+                <span style="font-size: 0.85rem; color:var(--text-muted);">Target Role: <strong>${c.target_role}</strong></span>
+              </div>
+              <span class="${badgeColor}">${c.current_decision || 'Under Review'}</span>
+            </div>
+
+            <div style="margin-top: 10px; font-size: 0.88rem; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div><strong>Role Fit Analysis:</strong> ${c.role_fit_analysis}</div>
+              <div><strong>Positioning Fit:</strong> ${c.positioning_fit_analysis}</div>
+              <div><strong>Trade-offs & Alternatives:</strong> ${c.trade_offs_and_alternatives}</div>
+              <div><strong>Review Prompt:</strong> <em>${c.review_prompt}</em></div>
+            </div>
+
+            <!-- Interactive Human Casting Decision Form -->
+            <div style="background: #f8fafc; padding: 12px; border-radius: 6px; margin-top: 14px; border: 1px solid var(--line);">
+              <h4 style="margin:0 0 8px 0; font-size: 0.95rem;">Record Human Casting Decision</h4>
+              <div style="display:flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <select id="decision-select-${idx}" style="padding: 6px 10px; border-radius: 4px; border: 1px solid var(--line);">
+                  <option value="Shortlist" ${c.current_decision === 'Shortlist' ? 'selected' : ''}>Shortlist</option>
+                  <option value="Research Further" ${c.current_decision === 'Research Further' ? 'selected' : ''}>Research Further</option>
+                  <option value="Do Not Shortlist" ${c.current_decision === 'Do Not Shortlist' ? 'selected' : ''}>Do Not Shortlist</option>
+                  <option value="Override" ${c.current_decision === 'Override' ? 'selected' : ''}>Override Suggestion</option>
+                </select>
+
+                <input type="text" id="rationale-input-${idx}" placeholder="Mandatory rationale (min 10 chars)..." 
+                       value="${c.decision_rationale || ''}" style="flex: 1; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--line); min-width: 250px;">
+
+                <button class="btn amber" style="padding: 6px 14px; font-size: 0.85rem;" 
+                        onclick="submitCastingDecision(${conceptId}, ${idx})">
+                  Save Decision
+                </button>
+              </div>
+              <div id="decision-status-${idx}" style="margin-top: 6px; font-size: 0.82rem;"></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      displayArea.innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <!-- Left Column: Promotional Scenes & Dialogue Lines -->
+          <div>
+            <div class="card" style="margin-bottom: 20px;">
+              <h2 style="font-size: 1.15rem; margin-bottom: 12px;">Top Promotional Scenes (Trailers & Ad Assets)</h2>
+              ${scenesHtml}
+            </div>
+
+            <div class="card">
+              <h2 style="font-size: 1.15rem; margin-bottom: 12px;">Verbatim Promotional Dialogue Quotes</h2>
+              ${dialogueHtml}
+            </div>
+          </div>
+
+          <!-- Right Column: Strategy, Context & Candidate Decisions -->
+          <div>
+            ${strategyHtml}
+            ${contextHtml}
+
+            <div>
+              <h2 style="font-size: 1.15rem; margin-bottom: 12px;">Candidate Comparison & Accountable Human Decisions</h2>
+              ${candidatesHtml}
+            </div>
+          </div>
+        </div>
+
+        ${data.review_notes?.length ? `<div class="card" style="margin-top:20px;"><h2 style="font-size:1.05rem;">Review notes</h2><ul>${data.review_notes.map(n => `<li>${n}</li>`).join("")}</ul></div>` : ""}
+        <div style="margin-top: 24px;">
+          <a class="btn amber" href="/screen/9" style="display: inline-block; width: 100%; text-align: center; text-decoration: none;">
+            Proceed to Screen 09: Production Breakdown & Rewrite Plan &rarr;
+          </a>
+        </div>
+      `;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#39;"}[ch]));
+    }
+    function escapeObject(value) {
+      if (typeof value === "string") return escapeHtml(value);
+      if (Array.isArray(value)) return value.map(escapeObject);
+      if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, escapeObject(v)]));
+      return value;
+    }
+
+    async function submitCastingDecision(conceptId, index) {
+      const candidate = currentData?.candidates?.[index];
+      if (!candidate) return;
+      const candidateName = candidate.candidate_name;
+      const role = candidate.target_role;
+      const decisionVal = document.getElementById(`decision-select-${index}`).value;
+      const rationaleVal = document.getElementById(`rationale-input-${index}`).value.trim();
+      const statusDiv = document.getElementById(`decision-status-${index}`);
+      const userName = (localStorage.getItem("rr_name") || "Producer").slice(0, 100);
+
+      if (rationaleVal.length < 10) {
+        statusDiv.innerHTML = `<span style="color:red;">Rationale must be at least 10 characters long.</span>`;
+        return;
+      }
+
+      statusDiv.innerHTML = `<span class="note">Saving decision...</span>`;
+
+      try {
+        const res = await fetch(`/api/screen8/decision/${conceptId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidate_name: candidateName,
+            target_role: role,
+            decision: decisionVal,
+            rationale: rationaleVal,
+            decided_by: userName
+          })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.detail || "Failed to record decision");
+        }
+
+        statusDiv.innerHTML = `<span class="chip ok">✓ Decision saved to audit record by ${escapeHtml(userName)}!</span>`;
+      } catch (err) {
+        statusDiv.innerHTML = `<span style="color:red;">Error: ${escapeHtml(err.message)}</span>`;
+      }
+    }
+  </script>
+</body>
+</html>

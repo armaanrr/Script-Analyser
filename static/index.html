@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rocket Reels - Screen 01: Concept Approval</title>
+  <link rel="stylesheet" href="/static/App.css">
+  <script src="/static/Shell.js?v=3" defer></script>
+</head>
+<body>
+  <main class="shell-main">
+    <header class="page-head">
+      <div>
+        <span class="chip ok">Stage 1 · Concept Stage</span>
+        <h1>Concept Approval</h1>
+        <p class="sub">Decide whether a concept is worth developing into a screenplay before full writing begins.</p>
+      </div>
+      <div id="head-actions"></div>
+    </header>
+
+    <section class="concept-hero" aria-label="Concept approval overview">
+      <div class="hero-copy">
+        <span class="eyebrow">DEVELOPMENT GATE · 01 / 09</span>
+        <h2>Before the screenplay, validate the idea.</h2>
+        <p>Capture the story engine, evaluate its distinctiveness, then record a human-led development decision. No screenplay upload is needed at this stage.</p>
+        <div class="hero-pills"><span>01 · Submit concept</span><span>02 · AI assessment</span><span>03 · Human decision</span></div>
+      </div>
+      <div class="hero-mark" aria-hidden="true"><span>RR</span><i></i><b></b></div>
+    </section>
+
+    <section class="workflow-strip" aria-label="Approval workflow">
+      <div><span class="step-number">01</span><span><strong>Concept intake</strong><small>Story idea and characters</small></span></div>
+      <div><span class="step-number">02</span><span><strong>AI evaluation</strong><small>Evidence-led, provisional score</small></span></div>
+      <div><span class="step-number">03</span><span><strong>Creative approval</strong><small>Producer / owner decision</small></span></div>
+    </section>
+
+    <div class="layout">
+      <!-- LEFT COLUMN: Intake Form & Concepts List -->
+      <div>
+        <div class="panel intake-panel">
+          <div class="panel-heading">
+            <div><span class="eyebrow">NEW SUBMISSION</span><h2>Build the concept brief</h2></div>
+            <span class="required-note">* Required</span>
+          </div>
+          <p class="panel-intro">Give the team enough context to judge the premise—not a full episode-by-episode screenplay.</p>
+          <form id="concept-form">
+            <label for="working_title">Working Title * <small>(2-120 chars)</small></label>
+            <input type="text" id="working_title" required minlength="2" maxlength="120" placeholder="e.g. Raziya Bani IAS">
+
+            <label for="logline">Logline / Premise * <small>(Min 20 chars)</small></label>
+            <textarea id="logline" rows="2" required minlength="20" maxlength="500" placeholder="A village girl clears UPSC after years of struggles..."></textarea>
+
+            <label for="synopsis">Synopsis * <small>(Min 100 chars)</small></label>
+            <textarea id="synopsis" rows="4" required minlength="100" placeholder="Provide full plot overview... (minimum 100 characters required by server)"></textarea>
+
+            <label for="dramatic_mechanism">Central Dramatic Mechanism * <small>(Min 20 chars)</small></label>
+            <input type="text" id="dramatic_mechanism" required minlength="20" placeholder="e.g. Underdog overcoming corrupt local bureaucracy">
+
+            <label for="characters_setup">Main Characters & Setup * <small>(Min 20 chars)</small></label>
+            <textarea id="characters_setup" rows="3" required minlength="20" placeholder="Who drives the story? Include the protagonist, opposing force, relationships and stakes."></textarea>
+
+            <label for="likely_twists">Potential twists <small>(Optional)</small></label>
+            <textarea id="likely_twists" rows="2" placeholder="List any planned reversals or secrets you already have in mind."></textarea>
+
+            <label for="intended_format">Intended format</label>
+            <select id="intended_format">
+              <option value="Vertical micro-drama, ~30 short episodes">Vertical micro-drama · ~30 short episodes</option>
+              <option value="Vertical micro-drama, ~50 short episodes">Vertical micro-drama · ~50 short episodes</option>
+              <option value="Short-form series">Short-form series</option>
+              <option value="Other / to be decided">Other / to be decided</option>
+            </select>
+
+            <div class="form-footnote"><span class="status-dot"></span><span>Your concept is saved first. AI analysis runs only when you explicitly request it, helping avoid unnecessary API usage.</span></div>
+            <button type="submit" class="btn amber" id="submit-btn" style="margin-top: 14px; width: 100%;">
+              Submit Concept for Evaluation
+            </button>
+          </form>
+          <div id="form-status" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="panel">
+          <div class="row between">
+            <div><span class="eyebrow">WORKSPACE</span><h2>Submitted concepts</h2></div>
+            <button class="btn secondary" style="padding: 4px 10px; font-size: 0.8rem;" onclick="loadConcepts()">Refresh</button>
+          </div>
+          <ul class="list" id="concepts-list" style="margin-top: 10px;">
+            <li class="empty">Loading concepts...</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Details, AI Analysis & Decision Controls -->
+      <div id="evaluation-view">
+        <div class="panel">
+          <h2>Concept Analysis & Approval Controls</h2>
+          <p class="note">Select a concept from the left list to view details, run AI analysis, or submit an approval decision.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      loadConcepts();
+
+      document.getElementById("concept-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById("submit-btn");
+        const statusDiv = document.getElementById("form-status");
+
+        const userName = localStorage.getItem("rr_name") || "Writer";
+        const userRole = localStorage.getItem("rr_role") || "writer";
+
+        const payload = {
+          working_title: document.getElementById("working_title").value.trim(),
+          intended_format: document.getElementById("intended_format").value,
+          likely_twists: document.getElementById("likely_twists").value.trim(),
+          logline: document.getElementById("logline").value.trim(),
+          synopsis: document.getElementById("synopsis").value.trim(),
+          dramatic_mechanism: document.getElementById("dramatic_mechanism").value.trim(),
+          characters_setup: document.getElementById("characters_setup").value.trim(),
+          submitting_owner: userName
+        };
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Submitting...";
+
+        try {
+          const res = await fetch("/api/concepts", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-User-Name": userName,
+              "X-User-Role": userRole
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.detail ? JSON.stringify(errData.detail) : `Status ${res.status}`);
+          }
+
+          const created = await res.json();
+          statusDiv.innerHTML = `<div class="chip ok">✓ Concept #${created.id} created successfully!</div>`;
+          document.getElementById("concept-form").reset();
+          await loadConcepts();
+          selectConcept(created.id);
+        } catch (err) {
+          statusDiv.innerHTML = `<div class="err">Error: ${err.message}</div>`;
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerText = "Submit Concept for Evaluation";
+        }
+      });
+    });
+
+    function escapeHTML(value) {
+      return String(value ?? "").replace(/[&<>"']/g, ch => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[ch]));
+    }
+
+    async function loadConcepts() {
+      const listEl = document.getElementById("concepts-list");
+      const userName = localStorage.getItem("rr_name") || "Writer";
+      const userRole = localStorage.getItem("rr_role") || "producer";
+
+      try {
+        const res = await fetch("/api/concepts", {
+          headers: { "X-User-Name": userName, "X-User-Role": userRole }
+        });
+        const concepts = await res.json();
+
+        if (!concepts || concepts.length === 0) {
+          listEl.innerHTML = `<li class="empty">No concepts submitted yet.</li>`;
+          return;
+        }
+
+        // Backend list_concepts() returns items with keys: id, title, latest_decision
+        listEl.innerHTML = concepts.map(c => {
+          const status = c.latest_decision || 'pending';
+          const isOk = status === 'approve_to_screenplay';
+          return `
+            <li>
+              <button onclick="selectConcept(${c.id})" class="row between" style="width:100%; cursor:pointer;">
+                <div style="text-align:left;">
+                  <strong>${escapeHTML(c.title)}</strong>
+                  <div class="hint">Concept #${c.id}</div>
+                </div>
+                <span class="chip ${isOk ? 'ok' : 'info'}">${escapeHTML(status.replaceAll("_", " "))}</span>
+              </button>
+            </li>
+          `;
+        }).join("");
+      } catch (err) {
+        listEl.innerHTML = `<li class="err">Failed to load concepts</li>`;
+      }
+    }
+
+    async function selectConcept(cid) {
+      const evalView = document.getElementById("evaluation-view");
+      evalView.innerHTML = `<div class="panel"><p class="note">Loading details for Concept #${cid}...</div>`;
+
+      const userName = localStorage.getItem("rr_name") || "Writer";
+      const userRole = localStorage.getItem("rr_role") || "producer";
+
+      try {
+        const res = await fetch(`/api/concepts/${cid}`, {
+          headers: { "X-User-Name": userName, "X-User-Role": userRole }
+        });
+        
+        if (!res.ok) throw new Error("Could not fetch details");
+        const c = await res.json();
+
+        // Exact mapping matching service.py concept_detail() structure:
+        const data = c.current_version ? c.current_version.data : {};
+        const title = data.working_title || `Concept #${c.id}`;
+        const logline = data.logline || 'N/A';
+        const mechanism = data.dramatic_mechanism || 'N/A';
+        const characters = data.characters_setup || 'N/A';
+        
+        const latestDecision = (c.decisions && c.decisions.length > 0) ? c.decisions[0] : null;
+        const status = latestDecision ? latestDecision.decision : 'pending';
+        const isApproved = status === 'approve_to_screenplay';
+
+        evalView.innerHTML = `
+          <div class="panel">
+            <div class="row between">
+              <h2>${escapeHTML(title)}</h2>
+              <span class="chip ${isApproved ? 'ok' : 'info'}">${status}</span>
+            </div>
+            <p style="margin-top: 12px;"><strong>Logline:</strong> ${escapeHTML(logline)}</p>
+            <p><strong>Dramatic Mechanism:</strong> ${escapeHTML(mechanism)}</p>
+            <p><strong>Main Characters:</strong> ${escapeHTML(characters)}</p>
+
+            ${c.analysis && c.analysis.result && c.analysis.result.score ? `
+              <div class="summary-card" style="margin: 16px 0; background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 16px;">
+                <div class="score-badge" style="font-size: 2rem; font-weight: bold; color: var(--accent);">${c.analysis.result.score.total ?? '--'} / 100</div>
+                <div style="color: var(--muted); font-size: 0.9rem;">Concept 100-Point Stage Score</div>
+              </div>
+            ` : `
+              <div style="margin-top:14px;">
+                <button class="btn amber" onclick="runAnalysis(${cid})">Run AI Analysis</button>
+              </div>
+            `}
+          </div>
+
+          <!-- PRODUCER DECISION CONTROL PANEL -->
+          <div class="panel" style="border-top: 3px solid var(--brand-green); margin-top: 16px;">
+            <h3>Record Creative Decision</h3>
+            <label for="decision-action">Decision Action</label>
+            <select id="decision-action">
+              <option value="approve_to_screenplay" ${status === 'approve_to_screenplay' ? 'selected' : ''}>Approve concept to screenplay</option>
+              <option value="revise_concept" ${status === 'revise_concept' ? 'selected' : ''}>Revise concept</option>
+              <option value="hold_for_research" ${status === 'hold_for_research' ? 'selected' : ''}>Hold for research</option>
+              <option value="reject_concept" ${status === 'reject_concept' ? 'selected' : ''}>Reject concept</option>
+            </select>
+
+            <label for="decision-rationale">Decision Rationale <small>(Min 10 chars)</small></label>
+            <textarea id="decision-rationale" placeholder="State reason for creative approval...">${escapeHTML(latestDecision ? latestDecision.rationale : '')}</textarea>
+
+            <button class="btn amber" style="margin-top: 12px; width: 100%;" onclick="submitDecision(${cid})">
+              Submit Final Decision
+            </button>
+            <div id="decision-status" style="margin-top: 8px;"></div>
+          </div>
+        `;
+      } catch (err) {
+        evalView.innerHTML = `<div class="panel err">Failed to load concept details: ${err.message}</div>`;
+      }
+    }
+
+    async function runAnalysis(cid) {
+      const userName = localStorage.getItem("rr_name") || "Writer";
+      const userRole = localStorage.getItem("rr_role") || "producer";
+
+      const evalView = document.getElementById("evaluation-view");
+      evalView.innerHTML = `<div class="panel"><p class="note">Running AI analysis with Gemini... Please wait...</p></div>`;
+
+      try {
+        const res = await fetch(`/api/concepts/${cid}/analyze`, {
+          method: "POST",
+          headers: { "X-User-Name": userName, "X-User-Role": userRole }
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(typeof body.detail === "string" ? body.detail : `Analysis failed (${res.status})`);
+        }
+        await selectConcept(cid);
+      } catch (err) {
+        evalView.innerHTML = `<div class="panel err">AI Analysis failed: ${err.message}</div>`;
+      }
+    }
+
+    async function submitDecision(cid) {
+      const action = document.getElementById("decision-action").value;
+      const rationale = document.getElementById("decision-rationale").value.trim();
+      const statusDiv = document.getElementById("decision-status");
+
+      if (rationale.length < 10) {
+        statusDiv.innerHTML = `<div class="err">Rationale must be at least 10 characters long.</div>`;
+        return;
+      }
+
+      const userName = localStorage.getItem("rr_name") || "Writer";
+      const userRole = localStorage.getItem("rr_role") || "producer";
+
+      try {
+        const res = await fetch(`/api/concepts/${cid}/decision`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-User-Name": userName,
+            "X-User-Role": userRole
+          },
+          body: JSON.stringify({ decision: action, rationale: rationale })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.detail || "Failed to record decision");
+        }
+
+        statusDiv.innerHTML = `<div class="chip ok">✓ Decision recorded! Concept status updated.</div>`;
+        await loadConcepts();
+        selectConcept(cid);
+      } catch (err) {
+        statusDiv.innerHTML = `<div class="err">Error: ${err.message}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>

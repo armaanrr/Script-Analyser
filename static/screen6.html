@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rocket Reels — Character & Emotional Journey</title>
+  <link rel="stylesheet" href="/static/App.css">
+  <script src="/static/Shell.js?v=2" defer></script>
+</head>
+<body class="screen6-page">
+<main class="shell-main s6-main">
+  <header class="s6-hero">
+    <div class="s6-hero-copy">
+      <span class="s6-eyebrow"><span class="s6-dot"></span> Stage 2 · Character Intelligence</span>
+      <h1>Characters &amp; Emotional Journey</h1>
+      <p>Understand what drives each character, how relationships change, where the screenplay lands emotionally, and which continuity questions deserve a writer’s attention.</p>
+    </div>
+    <aside class="s6-status-card" id="s6-status-card" data-state="idle">
+      <span class="s6-status-label">CHARACTER PROFILES</span>
+      <strong id="s6-character-count">—</strong>
+      <span class="s6-status-hint" id="s6-status-hint">Awaiting analysis</span>
+    </aside>
+  </header>
+
+  <section class="s6-project-bar" aria-label="Select screenplay">
+    <div class="s6-project-field">
+      <label for="s6-project-select">Approved screenplay project</label>
+      <select id="s6-project-select"><option value="">Loading projects…</option></select>
+      <small id="s6-project-meta">Select a project with an approved concept and uploaded screenplay.</small>
+    </div>
+    <button id="s6-analyze-btn" class="s6-primary" type="button">Analyze characters <span aria-hidden="true">↗</span></button>
+  </section>
+  <div id="s6-status-message" class="s6-status-message" role="status" aria-live="polite"></div>
+
+  <section id="s6-empty-state" class="s6-empty">
+    <div class="s6-empty-icon">✦</div>
+    <h2>Your character intelligence workspace</h2>
+    <p>Run the analysis to reveal character goals and arcs, relationship power shifts, emotional beats, continuity checks and casting requirements.</p>
+    <div class="s6-empty-pills"><span>Character arcs</span><span>Relationship dynamics</span><span>Emotional beats</span><span>Continuity review</span></div>
+  </section>
+
+  <section id="s6-results" hidden>
+    <div class="s6-results-head">
+      <div><span class="s6-kicker">ANALYSIS REPORT</span><h2 id="s6-report-title">Character &amp; emotional report</h2><p id="s6-report-subtitle">Structured insights from the selected screenplay.</p></div>
+      <div class="s6-token-meta" id="s6-token-meta"></div>
+    </div>
+    <div id="s6-review-notes"></div>
+    <section class="s6-section">
+      <div class="s6-section-heading"><div><span class="s6-kicker">01 / CHARACTER DESIGN</span><h3>Character profiles &amp; arcs</h3></div><span class="s6-section-count" id="s6-profile-count">0 profiles</span></div>
+      <div id="s6-profiles" class="s6-profile-grid"></div>
+    </section>
+    <div class="s6-two-column">
+      <section class="s6-panel"><div class="s6-section-heading"><div><span class="s6-kicker">02 / POWER &amp; CONFLICT</span><h3>Relationship dynamics</h3></div></div><div id="s6-relationships" class="s6-stack"></div></section>
+      <section class="s6-panel"><div class="s6-section-heading"><div><span class="s6-kicker">03 / EMOTIONAL DESIGN</span><h3>Key emotional beats</h3></div></div><div id="s6-beats" class="s6-stack"></div></section>
+    </div>
+    <section class="s6-panel s6-wide-panel"><div class="s6-section-heading"><div><span class="s6-kicker">04 / CONTINUITY &amp; MOTIVATION</span><h3>Checks for writer review</h3></div><span class="s6-human-badge">Human review required</span></div><div id="s6-checks" class="s6-check-grid"></div></section>
+    <section class="s6-panel s6-wide-panel"><div class="s6-section-heading"><div><span class="s6-kicker">05 / PRODUCTION PREP</span><h3>Casting requirements</h3></div></div><div id="s6-casting" class="s6-casting-grid"></div><p class="s6-disclaimer">These are role requirements inferred from the screenplay, not recommendations for specific actors. Confirm age, dialect and performance needs with the creative team.</p></section>
+    <a class="s6-next-link" href="/screen/7"><span><strong>Continue to Screen 7</strong><small>Audience, title &amp; world-building</small></span><span aria-hidden="true">→</span></a>
+    <footer class="s6-footer"><span>AI-assisted editorial analysis · Verify evidence before making decisions.</span><a href="/screen/5">← Back to Episode Diagnostics</a></footer>
+  </section>
+</main>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const select = $('s6-project-select'), button = $('s6-analyze-btn');
+  let projects = [];
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const empty = (message) => `<div class="s6-no-data">${escapeHtml(message)}</div>`;
+  const chip = (text, cls='') => `<span class="s6-chip ${cls}">${escapeHtml(text || 'Not specified')}</span>`;
+  function status(message, type='info') { $('s6-status-message').innerHTML = message ? `<div class="s6-alert ${type}">${escapeHtml(message)}</div>` : ''; }
+  async function loadProjects() {
+    try {
+      const response = await fetch('/api/screen6/projects');
+      if (!response.ok) throw new Error('Could not load project list.');
+      const all = await response.json();
+      projects = all.filter(p => p.approved && p.screenplay_version != null);
+      select.innerHTML = projects.length ? projects.map(p => `<option value="${Number(p.id)}">${escapeHtml(p.title)} · v${escapeHtml(p.screenplay_version)}</option>`).join('') : '<option value="">No approved project with a screenplay found</option>';
+      $('s6-project-meta').textContent = projects.length ? 'Only approved concepts with an uploaded screenplay are shown.' : 'Approve a concept on Screen 1 and upload a screenplay on Screen 2 first.';
+      updateMeta();
+    } catch (error) { select.innerHTML = '<option value="">Project list unavailable</option>'; status(error.message || 'Could not load projects.', 'error'); }
+  }
+  function updateMeta() {
+    const project = projects.find(p => String(p.id) === select.value);
+    $('s6-project-meta').textContent = project ? `${project.screenplay_title || project.title} · Version ${project.screenplay_version} · ${Number(project.word_count || 0).toLocaleString()} words` : 'Select an approved screenplay project.';
+  }
+  select.addEventListener('change', updateMeta);
+  button.addEventListener('click', async () => {
+    const id = select.value;
+    if (!id) { status('Select an approved project with an uploaded screenplay first.', 'error'); return; }
+    button.disabled = true; button.innerHTML = '<span class="s6-spinner"></span>Analyzing screenplay…';
+    $('s6-status-card').dataset.state = 'loading'; $('s6-status-hint').textContent = 'Analysis in progress';
+    $('s6-empty-state').hidden = true; $('s6-results').hidden = true;
+    status('Reviewing character goals, relationships, emotional turning points and continuity evidence. Large screenplays may take longer.', 'info');
+    try {
+      const response = await fetch(`/api/screen6/analyze/${encodeURIComponent(id)}`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || 'Character analysis failed.');
+      render(data);
+      status(data.cache_hit ? 'Analysis loaded from cache — no new model tokens were used.' : 'Analysis complete. Review flagged evidence and editorial notes before relying on the findings.', data.review_notes?.length ? 'info' : 'success');
+      $('s6-status-card').dataset.state = data.review_notes?.length ? 'review' : 'pass';
+      $('s6-status-hint').textContent = data.review_notes?.length ? 'Review recommended' : 'Analysis complete';
+    } catch (error) {
+      $('s6-empty-state').hidden = false;
+      $('s6-empty-state').querySelector('h2').textContent = 'Analysis could not be completed';
+      $('s6-empty-state').querySelector('p').textContent = error.message || 'Check the project, API configuration and server logs, then try again.';
+      $('s6-status-card').dataset.state = 'review'; $('s6-status-hint').textContent = 'Needs attention';
+      status(error.message || 'Analysis failed. Please try again.', 'error');
+    } finally { button.disabled = false; button.innerHTML = 'Analyze characters <span aria-hidden="true">↗</span>'; }
+  });
+  function evidence(excerpt, verified) {
+    if (!excerpt) return '';
+    return `<blockquote class="s6-evidence">“${escapeHtml(excerpt)}” ${chip(verified ? 'Source verified' : 'Check source', verified ? 'verified' : 'review')}</blockquote>`;
+  }
+  function render(data) {
+    const profiles = Array.isArray(data.character_profiles) ? data.character_profiles : [];
+    const relationships = Array.isArray(data.relationships) ? data.relationships : [];
+    const beats = Array.isArray(data.emotional_beats) ? data.emotional_beats : [];
+    const checks = Array.isArray(data.consistency_checks) ? data.consistency_checks : [];
+    const casting = Array.isArray(data.casting_requirements) ? data.casting_requirements : [];
+    $('s6-character-count').textContent = profiles.length;
+    $('s6-profile-count').textContent = `${profiles.length} profile${profiles.length === 1 ? '' : 's'}`;
+    $('s6-report-title').textContent = 'Character & emotional report';
+    $('s6-report-subtitle').textContent = `Project #${data.project_id} · Screenplay version ${data.screenplay_version || '—'} · Provider: ${data.provider || '—'}${data.model ? ` / ${data.model}` : ''}`;
+    $('s6-token-meta').textContent = data.cache_hit ? 'Cache hit · 0 new tokens' : `Tokens · ${data.input_tokens ?? '—'} in / ${data.output_tokens ?? '—'} out`;
+    $('s6-review-notes').innerHTML = (data.review_notes || []).length ? `<div class="s6-review-note"><strong>Items to review</strong><ul>${data.review_notes.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul></div>` : '';
+    $('s6-profiles').innerHTML = profiles.length ? profiles.map(p => `<article class="s6-character-card"><div class="s6-card-top"><div><span class="s6-kicker">${escapeHtml(p.role)}</span><h4>${escapeHtml(p.name)}</h4></div>${chip(`Agency · ${p.agency_level}`, p.agency_level === 'High' ? 'positive' : p.agency_level === 'Low' ? 'review' : '')}</div><div class="s6-character-fields"><div><strong>External goal</strong><p>${escapeHtml(p.goals_external || 'Not identified')}</p></div><div><strong>Internal need</strong><p>${escapeHtml(p.internal_need || 'Not identified')}</p></div><div><strong>Fear &amp; stakes</strong><p>${escapeHtml(p.fear_and_stakes || 'Not identified')}</p></div><div><strong>Character arc</strong><p>${escapeHtml(p.character_arc || 'Not identified')}</p></div></div>${evidence(p.evidence_excerpt, p.evidence_verified)}</article>`).join('') : empty('No character profiles were returned. Check the screenplay text and rerun analysis.');
+    $('s6-relationships').innerHTML = relationships.length ? relationships.map(r => `<article class="s6-relationship-card"><div class="s6-card-top"><h4>${escapeHtml(r.characters)}</h4>${chip(r.relationship_type)}</div><p><strong>Power shift</strong><br>${escapeHtml(r.power_balance || 'Not identified')}</p><p><strong>Key conflict</strong><br>${escapeHtml(r.key_conflict || 'Not identified')}</p>${evidence(r.evidence_excerpt, r.evidence_verified)}</article>`).join('') : empty('No key relationships were returned.');
+    $('s6-beats').innerHTML = beats.length ? beats.map(b => `<article class="s6-beat-card"><div class="s6-card-top"><h4>${escapeHtml(b.emotion_type)}</h4>${chip(b.episode_scene, 'blue')}</div>${b.quote_excerpt ? `<blockquote class="s6-quote">“${escapeHtml(b.quote_excerpt)}” ${chip(b.evidence_verified ? 'Verified' : 'Unverified', b.evidence_verified ? 'verified' : 'review')}</blockquote>` : ''}<p>${escapeHtml(b.impact_rationale || 'No rationale supplied.')}</p></article>`).join('') : empty('No emotional beats were returned.');
+    $('s6-checks').innerHTML = checks.length ? checks.map(c => `<article class="s6-check-card"><div class="s6-card-top"><h4>${escapeHtml(c.character_or_relation)}</h4>${chip(c.issue_type, 'review')}</div><span class="s6-location">${escapeHtml(c.scene_reference)}</span><p>${escapeHtml(c.description)}</p>${evidence(c.evidence_excerpt, c.evidence_verified)}</article>`).join('') : empty('No continuity checks were returned. This does not guarantee the screenplay is free of issues.');
+    $('s6-casting').innerHTML = casting.length ? casting.map(c => `<article class="s6-casting-card"><h4>${escapeHtml(c.character_name)}</h4><span class="s6-age">Age range: ${escapeHtml(c.age_range)}</span><p>${escapeHtml(c.language_performance || 'Language and performance demands not identified.')}</p><div class="s6-traits">${(c.key_traits || []).map(t => chip(t)).join('')}</div></article>`).join('') : empty('No casting requirements were returned.');
+    $('s6-results').hidden = false;
+  }
+  loadProjects();
+})();
+</script>
+</body>
+</html>

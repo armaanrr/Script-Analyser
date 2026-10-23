@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rocket Reels - Screen 03 Scorecard</title>
+  <link rel="stylesheet" href="/static/App.css">
+  <script src="/static/Shell.js" defer></script>
+</head>
+<body>
+  <main class="shell-main">
+    <header class="header-section" style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <span class="badge-green">Stage 2 · 16-Dimension Rubric</span>
+        <h1 class="page-title">Screen 03: Full-Screenplay Scorecard</h1>
+        <p class="sub" style="color: var(--text-muted);">Select an approved concept screenplay to run or view the 16-dimension AI scorecard.</p>
+      </div>
+      <div class="card" style="padding: 12px 24px; text-align: center; border-left: 4px solid var(--brand-blue);">
+        <div style="font-size: 2.2rem; font-weight: 800; color: var(--bg-dark);" id="total-score">--</div>
+        <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Score / 100</div>
+      </div>
+    </header>
+
+    <!-- Concept Selector Bar -->
+    <div class="card" style="margin-top: 16px; padding: 16px;">
+      <div class="row" style="display: flex; gap: 16px; align-items: center;">
+        <div style="flex: 1;">
+          <label for="concept-select" style="font-weight: 600; display: block; margin-bottom: 6px;">Select Screenplay Project *</label>
+          <select id="concept-select" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--line);">
+            <option value="">Loading approved concepts...</option>
+          </select>
+        </div>
+        <button id="run-scorecard-btn" class="btn amber" style="margin-top: 22px;">
+          Run AI 16-Dimension Scorecard
+        </button>
+      </div>
+      <div id="scorecard-status" style="margin-top: 10px;"></div>
+    </div>
+
+    <!-- 16-Dimension Rubric Table -->
+    <div class="card" style="margin-top: 20px;">
+      <table class="rubric-table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--line); text-align: left;">
+            <th style="width: 28%; padding: 10px;">Dimension</th>
+            <th style="width: 8%; padding: 10px;">Weight</th>
+            <th style="width: 10%; padding: 10px;">Rating (0-10)</th>
+            <th style="width: 12%; padding: 10px;">Weighted Points</th>
+            <th style="width: 42%; padding: 10px;">Evidence Excerpt & Rationale</th>
+          </tr>
+        </thead>
+        <tbody id="rubric-rows">
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">
+              Select a screenplay project above and click "Run AI 16-Dimension Scorecard" to generate results.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      loadConcepts();
+
+      document.getElementById("run-scorecard-btn").addEventListener("click", async () => {
+  const conceptId = document.getElementById("concept-select").value;
+  const statusDiv = document.getElementById("scorecard-status");
+  const btn = document.getElementById("run-scorecard-btn");
+
+  if (!conceptId) {
+    statusDiv.innerHTML = `<div class="chip info">Approval Pending</div>`;
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerText = "Analyzing 16 Dimensions with Gemini (10-15s)...";
+  statusDiv.innerHTML = `<div class="note">Evaluating story architecture, cliffhangers, and emotional beats...</div>`;
+
+  try {
+    const res = await fetch(`/api/screen3/analyze/${conceptId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.detail || "Approval Pending");
+    }
+
+    const data = await res.json();
+    statusDiv.innerHTML = `<div class="chip ok">✓ Scorecard Analysis Complete!</div>`;
+    renderScorecard(data);
+
+  } catch (err) {
+    console.error("Scorecard Error:", err);
+    // Directly show 'Approval Pending' chip
+    statusDiv.innerHTML = `<div class="chip info" style="margin-top:8px; font-weight:600;">Approval Pending</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Run AI 16-Dimension Scorecard";
+  }
+});
+    });
+
+    async function loadConcepts() {
+      const selectEl = document.getElementById("concept-select");
+      try {
+        const res = await fetch("/api/concepts");
+        const concepts = await res.json();
+
+        if (!Array.isArray(concepts) || concepts.length === 0) {
+          selectEl.innerHTML = `<option value="">No concepts found. Submit on Screen 1 first.</option>`;
+          return;
+        }
+
+        selectEl.innerHTML = concepts.map(c => {
+          const title = c.title || c.working_title || `Concept #${c.id}`;
+          return `<option value="${c.id}">${title} (Concept #${c.id})</option>`;
+        }).join("");
+
+        // Auto-run if a concept is selected
+        if (concepts.length > 0) {
+          selectEl.value = concepts[0].id;
+        }
+      } catch (err) {
+        selectEl.innerHTML = `<option value="">Failed to load concepts</option>`;
+      }
+    }
+
+    function renderScorecard(data) {
+      document.getElementById("total-score").innerText = data.total_score ?? "--";
+      const tbody = document.getElementById("rubric-rows");
+
+      if (!data.dimensions || data.dimensions.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="err">No dimension data returned.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.dimensions.map(d => {
+        const rating = d.rating !== null ? Number(d.rating).toFixed(1) : "--";
+        const points = d.calculated_points !== null ? Number(d.calculated_points).toFixed(2) : "--";
+        const location = d.location_reference ? `<strong>(${d.location_reference})</strong>` : "";
+        const excerpt = d.evidence_excerpt ? `<div class="evidence-quote" style="margin-top:4px; font-style:italic; color:var(--text-muted);">&ldquo;${d.evidence_excerpt}&rdquo; ${location}</div>` : "";
+
+        return `
+          <tr style="border-bottom: 1px solid var(--line);">
+            <td style="padding: 12px 10px;"><strong>${d.label}</strong></td>
+            <td style="padding: 12px 10px;">${d.weight}</td>
+            <td style="padding: 12px 10px;"><span class="chip ok">${rating}</span></td>
+            <td style="padding: 12px 10px;"><strong>${points}</strong></td>
+            <td style="padding: 12px 10px;">
+              <div>${d.rationale || 'N/A'}</div>
+              ${excerpt}
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+  </script>
+</body>
+</html>

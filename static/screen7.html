@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rocket Reels — Audience, Title & World</title>
+  <link rel="stylesheet" href="/static/App.css">
+  <script src="/static/Shell.js?v=2" defer></script>
+</head>
+<body>
+<main class="shell-main s7-page">
+  <header class="s7-hero">
+    <div><span class="badge-green">STAGE 2 · MARKET & WORLD ANALYSIS</span>
+      <h1 class="page-title">Audience, Title & World-Building</h1>
+      <p class="sub">Explore likely audience segments, emotional progression, title clarity and setting consistency. Findings are hypotheses for creative review—not measured market research.</p>
+    </div>
+    <div class="s7-score card"><span id="title-score">—</span><small>TITLE MEMORABILITY / 10</small></div>
+  </header>
+  <section class="card s7-selector">
+    <div class="s7-select-field"><label for="concept-select">Approved screenplay project</label><select id="concept-select"><option value="">Loading projects…</option></select></div>
+    <div class="s7-select-meta" id="project-meta">Choose a project to begin.</div>
+    <button id="load-aud-btn" class="btn primary">Analyze audience & world <span aria-hidden="true">→</span></button>
+  </section>
+  <div id="status-div" aria-live="polite"></div>
+  <section id="aud-display-area" class="s7-results"><div class="card s7-empty"><div class="s7-empty-icon">◈</div><h2>Your market and story-world report</h2><p>Select an approved project and run the analysis to view audience hypotheses, emotional journey, title evaluation and world-building notes.</p></div></section>
+  <footer class="s7-footer"><span>AI-assisted editorial analysis · Human review required</span><a class="btn secondary" href="/screen/8">Continue to Screen 8 →</a></footer>
+</main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const select = $('concept-select'), button = $('load-aud-btn'), status = $('status-div'), area = $('aud-display-area');
+  let projects = [];
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const list = values => Array.isArray(values) && values.length ? `<ul>${values.map(v=>`<li>${esc(v)}</li>`).join('')}</ul>` : '<p class="s7-muted">No details provided.</p>';
+  const panel = (title, body, extra='') => `<article class="card s7-panel ${extra}"><h2>${title}</h2>${body}</article>`;
+  async function loadProjects() {
+    try {
+      const response = await fetch('/api/screen7/projects');
+      if (!response.ok) throw new Error('Could not load projects.');
+      projects = await response.json();
+      const eligible = projects.filter(p => p.approved && p.screenplay_version != null);
+      select.innerHTML = '<option value="">Choose a project…</option>' + eligible.map(p=>`<option value="${esc(p.id)}">${esc(p.title)} · v${esc(p.screenplay_version)}</option>`).join('');
+      if (!eligible.length) { select.innerHTML = '<option value="">No approved project with a screenplay found</option>'; status.innerHTML='<div class="s7-alert">Approve a concept on Screen 1 and upload a screenplay on Screen 2 first.</div>'; }
+      updateMeta();
+    } catch (error) { select.innerHTML='<option value="">Unable to load projects</option>'; status.innerHTML=`<div class="s7-alert">${esc(error.message)}</div>`; }
+  }
+  function updateMeta() {
+    const p = projects.find(x => String(x.id) === select.value);
+    $('project-meta').textContent = p ? `Version ${p.screenplay_version} · ${Number(p.word_count || 0).toLocaleString()} words · ${p.parse_status || 'parse status unavailable'}` : 'Choose an approved project with a screenplay.';
+  }
+  select.addEventListener('change', updateMeta);
+  button.addEventListener('click', async () => {
+    if (!select.value) { status.innerHTML='<div class="s7-alert">Select an approved project with a screenplay first.</div>'; return; }
+    button.disabled = true; button.textContent = 'Analyzing…';
+    status.innerHTML='<div class="s7-progress"><span class="s7-spinner"></span><div><strong>Building your audience and story-world report</strong><small>This may take a little while for a full screenplay. A cached result is faster.</small></div></div>';
+    try {
+      const response = await fetch(`/api/screen7/analyze/${encodeURIComponent(select.value)}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Analysis failed.');
+      render(data);
+      const usage = data.cache_hit ? 'Cached result · no new model tokens' : `Provider: ${data.provider || 'configured model'} · Tokens: ${data.input_tokens ?? '—'} in / ${data.output_tokens ?? '—'} out`;
+      status.innerHTML=`<div class="s7-success">${data.cache_hit ? '✓ Cached report loaded' : '✓ Analysis complete'} <span>${esc(usage)}</span></div>`;
+    } catch (error) { status.innerHTML=`<div class="s7-alert">${esc(error.message)} Please check approval, screenplay upload and server logs.</div>`; }
+    finally { button.disabled = false; button.innerHTML='Analyze audience & world <span aria-hidden="true">→</span>'; }
+  });
+  function render(data) {
+    const title = data.title_evaluation || {}, women = data.women_development_lens || {}, world = data.world_building || {};
+    $('title-score').textContent = Number(title.memorability_score ?? 0).toFixed(1);
+    const segments = (data.audience_segments || []).map(s=>`<div class="s7-segment"><div class="s7-segment-top"><strong>${esc(s.segment_type)} · ${esc(s.target_group)}</strong><span class="s7-confidence ${esc(String(s.confidence||'Medium').toLowerCase())}">${esc(s.confidence || 'Medium')} confidence</span></div><p><b>Motivations</b>${esc(s.motivations)}</p><p><b>Viewing context</b>${esc(s.viewing_context)}</p><p><b>Potential barriers</b>${esc(s.appeal_barriers)}</p></div>`).join('') || '<p class="s7-muted">No audience segments returned.</p>';
+    const phases = (data.emotional_journey || []).map((p,i)=>`<div class="s7-phase"><span class="s7-phase-index">0${i+1}</span><div><strong>${esc(p.phase)}</strong><p><b>Emotions:</b> ${esc((p.dominant_emotions||[]).join(', ') || 'Not specified')}</p><p>${esc(p.narrative_payoff)}</p></div></div>`).join('') || '<p class="s7-muted">No emotional phases returned.</p>';
+    const evidence = world.evidence_excerpt ? `<blockquote>${esc(world.evidence_excerpt)}<small>${world.evidence_verified ? '✓ Verified against screenplay text' : 'Review evidence manually'}</small></blockquote>` : '<p class="s7-muted">No verifiable source excerpt returned.</p>';
+    area.innerHTML = `<div class="s7-grid s7-grid-main">${panel('Audience segment hypotheses', `<p class="s7-intro">Potential audience groups inferred from the story—not validated audience data.</p>${segments}`)}${panel('Women 24–45 development lens', `<div class="s7-insight"><b>Agency & empowerment</b><p>${esc(women.empowerment_beat)}</p></div><div class="s7-insight"><b>Family resonance</b><p>${esc(women.family_resonance)}</p></div><div class="s7-insight"><b>Relationship depth</b><p>${esc(women.relationship_depth)}</p></div><h3>Development opportunities</h3>${list(women.development_recommendations)}`)}</div><div class="s7-grid s7-grid-secondary">${panel('Emotional journey', `<div class="s7-timeline">${phases}</div>`)}${panel('Title marketability', `<div class="s7-title-name">${esc(title.working_title || 'Untitled')}</div><p>${esc(title.genre_cultural_fit)}</p><h3>Title strengths</h3>${list(title.strengths)}<h3>Alternative title directions</h3>${list(title.alternative_suggestions)}`)}${panel('World-building & consistency', `<div class="s7-insight"><b>Setting distinctiveness</b><p>${esc(world.setting_distinctiveness)}</p></div><div class="s7-insight"><b>Social rules & friction</b><p>${esc(world.social_rules_and_friction)}</p></div><div class="s7-insight"><b>World consistency</b><p>${esc(world.world_consistency)}</p></div><h3>Source evidence</h3>${evidence}`)}</div>${panel('Family suitability & review notes', `<p>${esc(data.family_suitability_summary || 'No family suitability summary returned.')}</p>${list(data.review_notes || [])}`, 's7-review')}`;
+  }
+  loadProjects();
+})();
+</script>
+</body></html>

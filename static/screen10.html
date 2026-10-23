@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rocket Reels — Screen 10: Human Review & Final Decision</title>
+  <link rel="stylesheet" href="/static/App.css?v=screen10-layout-fix-3"><script src="/static/Shell.js?v=2" defer></script>
+
+  <style id="screen10-layout-guard">
+    /* Screen 10 layout guard: self-contained so older shared CSS cannot break this page. */
+    .s10-main { box-sizing:border-box; width:100%; max-width:1480px; margin:0 auto; padding:28px clamp(18px,3vw,42px) 44px; color:#172033; font-size:15px; line-height:1.55; }
+    .s10-main *, .s10-main *::before, .s10-main *::after { box-sizing:border-box; }
+    .s10-main .s10-hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(190px,250px); gap:24px; align-items:start; margin:0 0 22px; }
+    .s10-main .s10-hero>div:first-child { min-width:0; }
+    .s10-main .s10-hero .page-title { margin:8px 0 12px; font-size:clamp(1.8rem,2.7vw,2.7rem); line-height:1.16; overflow-wrap:normal; }
+    .s10-main .s10-hero .sub { margin:0; max-width:1000px; line-height:1.65; }
+    .s10-main .s10-trust { display:flex; flex-direction:row; flex-wrap:wrap; align-items:center; gap:8px; margin:14px 0 0; }
+    .s10-main .s10-trust>span { display:inline-flex; align-items:center; width:auto; margin:0; padding:6px 10px; border:1px solid #dce2ec; border-radius:999px; background:#fff; font-size:.78rem; line-height:1.35; white-space:normal; }
+    .s10-main .s10-completeness { display:flex; flex-direction:column; align-items:flex-start; gap:6px; min-width:0; padding:16px; border:1px solid #dce2ec; border-top:4px solid #84fd77; border-radius:14px; background:#fff; }
+    .s10-main .s10-completeness small,.s10-main .s10-completeness span { display:block; width:100%; color:#596579; font-size:.8rem; line-height:1.45; }
+    .s10-main .s10-completeness strong { display:block; width:100%; font-size:1.35rem; line-height:1.25; overflow-wrap:anywhere; }
+    .s10-main .s10-select { display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px; margin:0 0 18px; padding:18px; border:1px solid #dce2ec; border-radius:14px; background:#fff; }
+    .s10-main .s10-select-field { display:flex; flex:1 1 360px; flex-direction:column; gap:7px; min-width:0; }
+    .s10-main .s10-select-field label { display:block; margin:0; font-weight:700; }
+    .s10-main .s10-select select { display:block; width:100%; min-height:46px; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; color:#172033; font:inherit; }
+    .s10-main .s10-status { flex:1 0 100%; min-width:0; }
+    .s10-main .s10-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin:0 0 18px; }
+    .s10-main .s10-metric { display:flex; flex-direction:column; align-items:flex-start; gap:6px; min-width:0; padding:17px 18px; border:1px solid #dce2ec; border-radius:14px; background:#fff; }
+    .s10-main .s10-metric>span,.s10-main .s10-metric>strong,.s10-main .s10-metric>small { display:block; width:100%; margin:0; line-height:1.4; }
+    .s10-main .s10-metric>span { color:#596579; font-size:.82rem; }
+    .s10-main .s10-metric>strong { font-size:1.5rem; line-height:1.2; overflow-wrap:anywhere; }
+    .s10-main .s10-metric>small { color:#596579; font-size:.76rem; }
+    .s10-main .s10-panel { display:block; min-width:0; margin:0 0 18px; padding:clamp(18px,2vw,28px); border:1px solid #dce2ec; border-radius:16px; background:#fff; box-shadow:0 4px 16px rgba(23,32,51,.035); }
+    .s10-main .s10-section-head { display:flex; flex-direction:row; justify-content:space-between; align-items:flex-start; gap:22px; margin:0 0 18px; }
+    .s10-main .s10-section-head>div { display:grid; grid-template-columns:32px minmax(0,1fr); align-items:center; column-gap:12px; row-gap:0; flex:1 1 380px; min-width:0; }
+    .s10-main .s10-section-head .s10-step { display:inline-flex; grid-column:1; grid-row:1; align-items:center; justify-content:center; width:32px; height:32px; margin:0; border-radius:9px; background:rgba(132,253,119,.24); font-weight:800; font-size:.76rem; line-height:1; }
+    .s10-main .s10-section-head h2 { display:block; grid-column:2; grid-row:1; min-width:0; margin:0; font-size:1.15rem; line-height:1.35; overflow-wrap:normal; }
+    .s10-main .s10-section-head>p { flex:0 1 520px; max-width:520px; margin:0; color:#596579; font-size:.88rem; line-height:1.55; }
+    .s10-main .s10-module-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .s10-main .s10-module { min-width:0; padding:15px; border:1px solid #dce2ec; border-radius:12px; background:#fff; }
+    .s10-main .s10-checklist { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; gap:12px; }
+    .s10-main .s10-checklist label.s10-check { display:flex; flex-direction:row; align-items:flex-start; justify-content:flex-start; gap:11px; min-width:0; margin:0; padding:14px; border:1px solid #dce2ec; border-radius:11px; background:#fff; color:#253247; font-size:.88rem; font-weight:550; line-height:1.5; cursor:pointer; }
+    .s10-main .s10-checklist label.s10-check input[type=checkbox] { display:block; flex:0 0 18px; width:18px; height:18px; min-height:18px; margin:3px 0 0; padding:0; accent-color:#328c3b; }
+    .s10-main .s10-checklist label.s10-check span { display:block; flex:1 1 auto; min-width:0; margin:0; line-height:1.5; overflow-wrap:anywhere; }
+    .s10-main .s10-form-footer,.s10-main .s10-reviewer-fields { display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px; }
+    .s10-main .s10-reviewer-fields { flex:1 1 300px; min-width:0; }
+    .s10-main .s10-reviewer-fields label { display:flex; flex:1 1 180px; flex-direction:column; gap:7px; min-width:0; margin:0; }
+    .s10-main .s10-form { display:flex; flex-direction:column; gap:14px; min-width:0; padding:18px; border:1px solid #e0e6ef; border-radius:13px; background:#f9fbfd; }
+    .s10-main .s10-form label { display:flex; flex-direction:column; gap:7px; min-width:0; margin:0; }
+    .s10-main .s10-form input,.s10-main .s10-form select,.s10-main .s10-form textarea { display:block; width:100%; max-width:100%; min-height:44px; padding:11px 13px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; color:#172033; font:inherit; }
+    .s10-main .s10-form textarea { min-height:100px; line-height:1.55; }
+    .s10-main .s10-decision-columns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; align-items:start; }
+    .s10-main .s10-form-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+    .s10-main .s10-audit-list { display:flex; flex-direction:column; gap:12px; margin-top:14px; }
+    .s10-main .s10-audit-item { min-width:0; padding:16px; border:1px solid #dce2ec; border-radius:12px; background:#fff; overflow-wrap:anywhere; }
+    .s10-main .s10-audit-top { display:flex; flex-direction:row; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:8px; }
+    .s10-main .s10-audit-top>* { min-width:0; }
+    .s10-main .s10-audit-item p { line-height:1.6; overflow-wrap:anywhere; }
+    .s10-main .s10-export-row { display:flex; flex-direction:row; flex-wrap:wrap; gap:10px; margin-bottom:22px; }
+    .s10-main .s10-export-row .btn { display:inline-flex; align-items:center; justify-content:center; }
+    @media(max-width:1000px) { .s10-main .s10-hero { grid-template-columns:1fr; }.s10-main .s10-completeness { width:100%; }.s10-main .s10-section-head { flex-direction:column; gap:9px; }.s10-main .s10-section-head>div { flex:0 1 auto; width:100%; }.s10-main .s10-section-head>p { flex:0 1 auto; width:100%; max-width:none; }.s10-main .s10-decision-columns { grid-template-columns:1fr; }.s10-main .s10-form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:680px) { .s10-main { padding:18px 14px 28px; }.s10-main .s10-metrics,.s10-main .s10-module-grid,.s10-main .s10-checklist,.s10-main .s10-form-grid { grid-template-columns:1fr; }.s10-main .s10-panel { padding:16px; }.s10-main .s10-form-footer { align-items:stretch; flex-direction:column; }.s10-main .s10-form-footer>.btn,.s10-main .s10-form .btn { width:100%; }.s10-main .s10-audit-top { flex-direction:column; } }
+  </style>
+
+</head>
+<body>
+<main class="shell-main s10-main">
+  <header class="s10-hero">
+    <div><span class="s2-eyebrow">STAGE 2 · ACCOUNTABILITY & RELEASE</span>
+      <h1 class="page-title">Human Review, Final Decision, Audit & Export</h1>
+      <p class="sub">One accountable place to review evidence, record creative decisions, preserve overrides, export the record, and connect verified post-launch learning.</p>
+      <div class="s10-trust"><span>Human decision only</span><span>Append-only audit history</span><span>No new AI call</span></div>
+    </div>
+    <div class="s10-completeness"><small>Selected project status</small><strong id="completeness">Loading…</strong><span id="script-version">Choose a project</span></div>
+  </header>
+
+  <section class="s10-select card">
+    <div class="s10-select-field"><label for="project-select">Concept / screenplay project</label><select id="project-select"><option value="">Loading projects…</option></select></div>
+    <button class="btn amber" id="refresh-btn" type="button">Load review record</button>
+    <div id="status" class="s10-status" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="s10-metrics" aria-label="Review summary">
+    <article class="s10-metric card"><span>Required modules</span><strong id="module-count">—</strong><small>Successful / expected</small></article>
+    <article class="s10-metric card"><span>Scorecard evidence</span><strong id="score-evidence">—</strong><small>16 dimensions required</small></article>
+    <article class="s10-metric card"><span>Human decisions</span><strong id="decision-count">0</strong><small>Recorded in audit history</small></article>
+    <article class="s10-metric card"><span>Overrides</span><strong id="override-count">0</strong><small>AI output remains unchanged</small></article>
+  </section>
+
+  <section class="s10-panel card">
+    <div class="s10-section-head"><div><span class="s10-step">01</span><h2>Readiness & required modules</h2></div><p>Missing or partial analysis must remain visible; it cannot be presented as final approval.</p></div>
+    <div id="module-grid" class="s10-module-grid"><p class="s10-empty">Select a project to see module status.</p></div>
+    <div id="gate-summary" class="s10-gate-summary">Mandatory gate details will appear here when available.</div>
+  </section>
+
+  <section class="s10-panel card">
+    <div class="s10-section-head"><div><span class="s10-step">02</span><h2>Human review checklist</h2></div><p>Confirm each item against the current screenplay version before a final screenplay decision.</p></div>
+    <div id="checklist" class="s10-checklist"></div>
+    <div class="s10-form-footer"><div class="s10-reviewer-fields"><label>Reviewer name<input id="check-reviewer" maxlength="120" placeholder="Name of reviewer"></label><label>Role<select id="check-role"><option value="producer">Producer</option><option value="owner">Owner</option><option value="director">Director</option><option value="writer">Writer</option></select></label></div><button id="save-checklist" class="btn primary" type="button">Save checklist snapshot</button></div>
+    <p class="s10-help">Each save creates a dated snapshot. Reviewers should not mark an item complete unless it has actually been checked.</p>
+  </section>
+
+  <section class="s10-panel card">
+    <div class="s10-section-head"><div><span class="s10-step">03</span><h2>Record a human decision</h2></div><p>Concept commissioning and completed-screenplay approval are separate decisions with separate rationale.</p></div>
+    <div class="s10-decision-columns">
+      <form id="concept-decision-form" class="s10-form">
+        <h3>Concept-stage decision</h3><p>Use this before a screenplay is commissioned.</p>
+        <label>Decision<select id="concept-decision"><option value="approve_to_screenplay">Approve concept to screenplay</option><option value="revise_concept">Revise concept</option><option value="hold_for_research">Hold for research</option><option value="reject_concept">Reject concept</option></select></label>
+        <label>Rationale<textarea id="concept-rationale" minlength="10" required placeholder="Explain the decision and the evidence behind it…"></textarea></label>
+        <div class="s10-reviewer-fields"><label>Reviewer name<input id="concept-reviewer" required maxlength="120" placeholder="Name"></label><label>Role<select id="concept-role"><option value="producer">Producer</option><option value="owner">Owner</option><option value="director">Director</option><option value="writer">Writer</option></select></label></div>
+        <button class="btn secondary" type="submit">Record concept decision</button>
+      </form>
+      <form id="script-decision-form" class="s10-form">
+        <h3>Screenplay-stage decision</h3><p>Approval is blocked if required analysis or scorecard evidence is incomplete.</p>
+        <label>Decision<select id="script-decision"><option value="approve_screenplay">Approve screenplay</option><option value="revise_screenplay">Revise screenplay</option><option value="hold_for_review">Hold for review</option><option value="reject_screenplay">Reject screenplay</option></select></label>
+        <label>Rationale<textarea id="script-rationale" minlength="10" required placeholder="Summarize your review, risks, and decision rationale…"></textarea></label>
+        <div class="s10-reviewer-fields"><label>Reviewer name<input id="script-reviewer" required maxlength="120" placeholder="Name"></label><label>Role<select id="script-role"><option value="producer">Producer</option><option value="owner">Owner</option><option value="director">Director</option><option value="writer">Writer</option></select></label></div>
+        <button class="btn primary" type="submit">Record screenplay decision</button>
+      </form>
+    </div>
+    <p class="s10-warning"><strong>Decision safeguard:</strong> AI scores and recommendations are advisory. Authorized creative leadership owns the final decision. An approval attempt will be rejected if the required checks are incomplete.</p>
+  </section>
+
+  <section class="s10-panel card">
+    <div class="s10-section-head"><div><span class="s10-step">04</span><h2>Record an override</h2></div><p>Preserve the original AI/model value and store the human-adjusted value with a reason. This does not overwrite prior analysis.</p></div>
+    <form id="override-form" class="s10-form s10-wide-form">
+      <div class="s10-form-grid"><label>Field / dimension key<input id="override-key" required maxlength="100" placeholder="e.g. episode_hooks"></label><label>Original AI value<input id="override-original" required maxlength="5000" placeholder="Original value / score"></label><label>Human-adjusted value<input id="override-adjusted" required maxlength="5000" placeholder="Updated value / score"></label></div>
+      <label>Reason for override<textarea id="override-rationale" required minlength="10" placeholder="Explain the evidence and reason for the change…"></textarea></label>
+      <div class="s10-form-footer"><div class="s10-reviewer-fields"><label>Reviewer name<input id="override-reviewer" required maxlength="120" placeholder="Name"></label><label>Role<select id="override-role"><option value="producer">Producer</option><option value="owner">Owner</option><option value="director">Director</option><option value="writer">Writer</option></select></label></div><button class="btn secondary" type="submit">Save override to audit</button></div>
+    </form>
+  </section>
+
+  <section class="s10-panel card">
+    <div class="s10-section-head"><div><span class="s10-step">05</span><h2>Audit history</h2></div><p>Decision, reviewer, version, analysis-run IDs, model/prompt provenance, and override history remain traceable.</p></div>
+    <div id="audit-list" class="s10-audit-list"><p class="s10-empty">No decisions recorded yet.</p></div>
+    <div id="override-list" class="s10-audit-list"></div>
+  </section>
+
+  <section class="s10-panel card">
+    <div class="s10-section-head"><div><span class="s10-step">06</span><h2>Export & post-launch learning</h2></div><p>Export the current review record. Post-launch metrics should only be attached with their source and reporting window.</p></div>
+    <div class="s10-export-row"><a id="pdf-export" class="btn primary disabled" href="#" aria-disabled="true">Download review PDF</a><a id="json-export" class="btn secondary disabled" href="#" aria-disabled="true">Download structured JSON</a></div>
+    <form id="learning-form" class="s10-form s10-wide-form">
+      <h3>Attach verified performance data</h3>
+      <div class="s10-form-grid"><label>Connected source / report<input id="learning-source" required placeholder="e.g. approved analytics export"></label><label>Reporting window<input id="learning-window" required placeholder="e.g. first 7 days after launch"></label><label>Extraction date / timestamp<input id="learning-date" required placeholder="YYYY-MM-DD or ISO timestamp"></label></div>
+      <label>Metrics as JSON<textarea id="learning-metrics" placeholder='{"hours_streamed": 0, "unique_users": 0, "completion_rate": null}'></textarea></label>
+      <label>Notes / definitions<textarea id="learning-note" placeholder="Metric definitions, data gaps, and source notes"></textarea></label>
+      <label>Recorded by<input id="learning-by" required placeholder="Name of data owner"></label>
+      <button class="btn secondary" type="submit">Save post-launch learning link</button>
+    </form>
+    <div id="learning-list" class="s10-audit-list"></div>
+  </section>
+  <footer class="s10-footnote">Screen 10 is a human accountability layer. It does not rerun earlier analysis modules, invent unavailable performance metrics, or convert incomplete evidence into approval.</footer>
+</main>
+<script>
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+  let project = null, dashboard = null;
+  const CHECKS = [
+    ['correct_version','Correct screenplay version and upload were reviewed'],
+    ['modules_complete','All required analysis modules are complete'],
+    ['scorecard_reviewed','All 16 scorecard ratings and evidence were reviewed'],
+    ['gates_resolved','Mandatory gates have a documented human disposition'],
+    ['episodes_reviewed','Episode diagnostics and missing/unreadable episodes were reviewed'],
+    ['characters_reviewed','Character, relationship, and emotional findings were reviewed'],
+    ['promo_casting_reviewed','Promo assets, casting decisions, and spoiler risks were checked'],
+    ['production_reviewed','Production estimates and rewrite priorities were reviewed']
+  ];
+  function esc(v){return String(v == null ? '' : v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function say(msg,type='info'){ $('status').innerHTML = '<span class="s10-message '+type+'">'+esc(msg)+'</span>'; }
+  function actor(prefix){
+    const name = $(prefix+'reviewer') ? $(prefix+'reviewer').value.trim() : '';
+    const role = $(prefix+'role') ? $(prefix+'role').value : 'producer';
+    return {reviewer_name:name || localStorage.getItem('rr_name') || 'Reviewer', reviewer_role:role || localStorage.getItem('rr_role') || 'producer'};
+  }
+  async function api(url, opts={}){
+    const res = await fetch(url, {...opts, headers:{'Content-Type':'application/json', ...(opts.headers||{})}});
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.detail || 'Request failed ('+res.status+')');
+    return data;
+  }
+  async function loadProjects(){
+    const sel=$('project-select');
+    try{
+      const projects=await api('/api/screen10/projects');
+      if(!projects.length){sel.innerHTML='<option value="">No concepts found — create one on Screen 1 first</option>';return;}
+      sel.innerHTML=projects.map(p=>'<option value="'+esc(p.concept_id)+'">'+esc(p.title)+' · Concept #'+esc(p.concept_id)+(p.screenplay_version?' · Script v'+esc(p.screenplay_version):' · No screenplay yet')+'</option>').join('');
+      await loadDashboard();
+    }catch(e){sel.innerHTML='<option value="">Could not load projects</option>';say(e.message,'error');}
+  }
+  async function loadDashboard(){
+    const id=$('project-select').value;
+    if(!id)return;
+    $('refresh-btn').disabled=true;
+    try{project=await api('/api/screen10/dashboard/'+encodeURIComponent(id));dashboard=project;render();say('Review record loaded. No AI analysis was run.','success');}
+    catch(e){say(e.message,'error');}
+    finally{$('refresh-btn').disabled=false;}
+  }
+  function render(){
+    const p=dashboard; if(!p)return;
+    $('completeness').textContent=p.completeness;
+    $('script-version').textContent=p.screenplay?'Script v'+p.screenplay.version+' · '+(p.screenplay.page_count??'Page count unavailable')+' pages':'No screenplay uploaded';
+    const ok=p.modules.filter(m=>m.status==='Ok').length;
+    $('module-count').textContent=ok+' / '+p.modules.length;
+    $('score-evidence').textContent=p.ratings_complete?'16 / 16':'Incomplete';
+    $('decision-count').textContent=p.decisions.length;
+    $('override-count').textContent=p.overrides.length;
+    $('module-grid').innerHTML=p.modules.map(m=>'<article class="s10-module"><div><strong>'+esc(m.label)+'</strong><span class="s10-status-pill '+(m.status==='Ok'?'ok':m.status==='Missing'?'missing':'partial')+'">'+esc(m.status)+'</span></div><small>'+esc(m.provider?m.provider+' · '+m.model:'No successful run recorded')+'</small><small>'+esc(m.prompt_version?'Prompt '+m.prompt_version:'')+(m.run_id?' · Run #'+m.run_id:'')+'</small></article>').join('');
+    const gate=p.gates_result;
+    $('gate-summary').innerHTML='<strong>Mandatory gate review:</strong> '+(gate?esc(gate.overall_status||gate.status||'Results available — inspect Screen 4 for each finding'):'No saved gate result found. Review Screen 4 before approval.')+' <span>Screen 10 does not automatically resolve gate flags.</span>';
+    const saved=p.checklist||{};
+    $('checklist').innerHTML=CHECKS.map(([key,label])=>'<label class="s10-check"><input type="checkbox" data-check="'+key+'" '+(saved[key]===true?'checked':'')+'><span>'+esc(label)+'</span></label>').join('');
+    $('audit-list').innerHTML=p.decisions.length?p.decisions.map(d=>'<article class="s10-audit-item"><div class="s10-audit-top"><span class="s10-status-pill '+(d.decision==='approve_screenplay'||d.decision==='approve_to_screenplay'?'ok':'partial')+'">'+esc(d.decision.replaceAll('_',' '))+'</span><small>'+esc(d.created_at||'Timestamp unavailable')+'</small></div><strong>'+esc(d.decision_type==='concept'?'Concept decision':'Screenplay decision')+' · '+esc(d.reviewer_name)+' ('+esc(d.reviewer_role)+')</strong><p>'+esc(d.rationale)+'</p><small>Version: '+esc(d.version_label||'—')+' · Analysis runs: '+esc(d.analysis_run_id||'none recorded')+' · AI score at decision: '+esc(d.ai_score_at_decision||'unavailable')+'</small></article>').join(''):'<p class="s10-empty">No decisions recorded yet.</p>';
+    $('override-list').innerHTML='<h3>Human overrides</h3>'+(p.overrides.length?p.overrides.map(o=>'<article class="s10-audit-item"><strong>'+esc(o.field_key)+'</strong><p><del>'+esc(o.original_value)+'</del> → <b>'+esc(o.adjusted_value)+'</b></p><p>'+esc(o.rationale)+'</p><small>'+esc(o.reviewer_name)+' · '+esc(o.reviewer_role)+' · '+esc(o.created_at||'')+'</small></article>').join(''):'<p class="s10-empty">No overrides recorded.</p>');
+    $('learning-list').innerHTML='<h3>Post-launch learning links</h3>'+(p.learning_links.length?p.learning_links.map(l=>'<article class="s10-audit-item"><strong>'+esc(l.source_name)+'</strong><p>Window: '+esc(l.reporting_window)+' · Extracted: '+esc(l.extracted_at)+'</p><pre>'+esc(JSON.stringify(l.metrics,null,2))+'</pre><small>Recorded by '+esc(l.created_by)+' · '+esc(l.created_at||'')+'</small><p>'+esc(l.note||'')+'</p></article>').join(''):'<p class="s10-empty">No connected performance data has been attached. No metrics have been inferred.</p>');
+    const hasId=Boolean(p.concept&&p.concept.id); ['pdf-export','json-export'].forEach(id=>{const a=$(id); if(hasId){a.href='/api/screen10/export/'+p.concept.id+(id==='pdf-export'?'.pdf':'.json');a.classList.remove('disabled');a.removeAttribute('aria-disabled');}else{a.href='#';a.classList.add('disabled');a.setAttribute('aria-disabled','true');}});
+    const localName=localStorage.getItem('rr_name')||''; ['check-reviewer','concept-reviewer','script-reviewer','override-reviewer'].forEach(id=>{if(!$(id).value)$(id).value=localName;});
+  }
+  $('refresh-btn').addEventListener('click',loadDashboard);
+  $('project-select').addEventListener('change',loadDashboard);
+  $('save-checklist').addEventListener('click',async()=>{
+    if(!dashboard||!dashboard.screenplay){say('Upload a screenplay before saving this checklist.','error');return;}
+    const a=actor('check-'); if(!a.reviewer_name){say('Enter the reviewer name.','error');return;}
+    const items={}; CHECKS.forEach(([key])=>items[key]=Boolean(document.querySelector('[data-check="'+key+'"]')?.checked));
+    try{await api('/api/screen10/checklist/'+dashboard.concept.id,{method:'POST',body:JSON.stringify({...a,items})});say('Checklist snapshot saved to the audit record.','success');await loadDashboard();}catch(e){say(e.message,'error');}
+  });
+  $('concept-decision-form').addEventListener('submit',async e=>{
+    e.preventDefault();if(!dashboard)return; const a=actor('concept-');
+    try{await api('/api/screen10/decision/'+dashboard.concept.id,{method:'POST',body:JSON.stringify({...a,decision_type:'concept',decision:$('concept-decision').value,rationale:$('concept-rationale').value,version_label:'Concept v'+(dashboard.concept.version??'—')})});$('concept-rationale').value='';say('Concept decision recorded.','success');await loadDashboard();}catch(err){say(err.message,'error');}
+  });
+  $('script-decision-form').addEventListener('submit',async e=>{
+    e.preventDefault();if(!dashboard)return; const a=actor('script-');
+    try{await api('/api/screen10/decision/'+dashboard.concept.id,{method:'POST',body:JSON.stringify({...a,decision_type:'screenplay',decision:$('script-decision').value,rationale:$('script-rationale').value,version_label:dashboard.screenplay?'Script v'+dashboard.screenplay.version:'No script version'})});$('script-rationale').value='';say('Screenplay decision recorded.','success');await loadDashboard();}catch(err){say(err.message,'error');}
+  });
+  $('override-form').addEventListener('submit',async e=>{
+    e.preventDefault();if(!dashboard)return; const a=actor('override-');
+    try{await api('/api/screen10/override/'+dashboard.concept.id,{method:'POST',body:JSON.stringify({...a,field_key:$('override-key').value,original_value:$('override-original').value,adjusted_value:$('override-adjusted').value,rationale:$('override-rationale').value})});e.target.reset();say('Override recorded. Original AI output remains unchanged.','success');await loadDashboard();}catch(err){say(err.message,'error');}
+  });
+  $('learning-form').addEventListener('submit',async e=>{
+    e.preventDefault();if(!dashboard)return;let metrics={};
+    try{metrics=$('learning-metrics').value.trim()?JSON.parse($('learning-metrics').value):{};}catch(_){say('Metrics must be valid JSON.','error');return;}
+    const body={source_name:$('learning-source').value,reporting_window:$('learning-window').value,extracted_at:$('learning-date').value,metrics,note:$('learning-note').value,created_by:$('learning-by').value};
+    try{await api('/api/screen10/learning/'+dashboard.concept.id,{method:'POST',body:JSON.stringify(body)});e.target.reset();say('Performance data link saved with its source and reporting window.','success');await loadDashboard();}catch(err){say(err.message,'error');}
+  });
+  const name=localStorage.getItem('rr_name')||''; ['check-reviewer','concept-reviewer','script-reviewer','override-reviewer','learning-by'].forEach(id=>$(id).value=name);
+  const role=localStorage.getItem('rr_role')||'producer'; ['check-role','concept-role','script-role','override-role'].forEach(id=>{if([...$(id).options].some(o=>o.value===role))$(id).value=role;});
+  loadProjects();
+})();
+</script>
+</body></html>

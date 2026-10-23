@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rocket Reels - Screen 09: Production Breakdown, Rewrite Plan & Version Comparison</title>
+  <link rel="stylesheet" href="/static/App.css">
+  <script src="/static/Shell.js?v=2" defer></script>
+</head>
+<body>
+  <main class="shell-main">
+    <header class="header-section" style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <span class="badge-green">Stage 2 · Execution & Development</span>
+        <h1 class="page-title">Screen 09: Production Breakdown, Rewrite Plan & Version Comparison</h1>
+        <p class="sub" style="color: var(--text-muted);">Turn screenplay evidence into transparent production estimates, cast and location planning, actionable rewrites, and draft-version review.</p>
+      </div>
+      <div style="display: flex; gap: 14px;">
+        <div class="card" style="padding: 10px 20px; text-align: center; border-left: 4px solid var(--brand-green);">
+          <div style="font-size: 1.6rem; font-weight: 800; color: var(--bg-dark);" id="est-days-badge">--</div>
+          <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Estimated Shoot Days</div>
+        </div>
+        <div class="card" style="padding: 10px 20px; text-align: center; border-left: 4px solid var(--brand-blue);">
+          <div style="font-size: 1.6rem; font-weight: 800; color: var(--bg-dark);" id="total-scenes-badge">--</div>
+          <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Total Scenes</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Selection Bar -->
+    <div class="card" style="margin-top: 16px; padding: 16px;">
+      <div class="row" style="display: flex; gap: 16px; align-items: center;">
+        <div style="flex: 1;">
+          <label for="concept-select" style="font-weight: 600; display: block; margin-bottom: 6px;">Select Approved Screenplay Project *</label>
+          <select id="concept-select" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--line);">
+            <option value="">Loading approved concepts...</option>
+          </select>
+        </div>
+        <button id="load-prod-btn" class="btn amber" style="margin-top: 22px;">
+          Generate Production & Rewrite Plan
+        </button>
+      </div>
+      <div id="status-div" style="margin-top: 10px;"></div>
+    </div>
+
+    <!-- MAIN DISPLAY AREA -->
+    <div id="prod-display-area" style="margin-top: 20px;">
+      <div class="card">
+        <p style="color: var(--text-muted); text-align: center;">Select an approved project above and click "Generate Production & Rewrite Plan" to view analysis.</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let activeProjectId = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadConcepts();
+
+      document.getElementById("load-prod-btn").addEventListener("click", async () => {
+        const conceptId = document.getElementById("concept-select").value;
+        const statusDiv = document.getElementById("status-div");
+        const btn = document.getElementById("load-prod-btn");
+
+        if (!conceptId) {
+          statusDiv.innerHTML = `<div class="chip info">Please select a concept.</div>`;
+          return;
+        }
+
+        activeProjectId = conceptId;
+        btn.disabled = true;
+        btn.innerText = "Generating analysis...";
+        statusDiv.innerHTML = `<div class="note">Analyzing the complete uploaded screenplay for production needs, rewrite priorities, and version evidence...</div>`;
+
+        try {
+          const res = await fetch(`/api/screen9/analyze/${conceptId}`);
+
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.detail || `Server returned ${res.status}`);
+          }
+
+          const data = await res.json();
+          statusDiv.innerHTML = `<div class="chip ok">✓ Production & Rewrite Breakdown Generated!</div>`;
+          renderProductionDashboard(data);
+
+        } catch (err) {
+          console.error("Screen 09 Error:", err);
+          // 👈 Displays the true error directly
+          statusDiv.textContent = `Error: ${err.message}`;
+        } finally {
+          btn.disabled = false;
+          btn.innerText = "Generate Production & Rewrite Plan";
+        }
+      });
+    });
+
+    async function loadConcepts() {
+      const selectEl = document.getElementById("concept-select");
+      try {
+        const res = await fetch("/api/concepts");
+        const concepts = await res.json();
+
+        const approved = concepts.filter(c => {
+          const status = c.latest_decision || c.status || c.decision;
+          return status === 'approve_to_screenplay' || status === 'approved' || status === 'approve';
+        });
+
+        if (!Array.isArray(approved) || approved.length === 0) {
+          selectEl.innerHTML = `<option value="">No approved concepts found. Approve a concept on Screen 1 first.</option>`;
+          return;
+        }
+
+        selectEl.innerHTML = approved.map(c => {
+          const title = c.title || c.working_title || `Concept #${c.id}`;
+          return `<option value="${c.id}">${escapeHtml(title)} (Concept #${c.id})</option>`;
+        }).join("");
+
+        if (approved.length > 0) {
+          selectEl.value = approved[0].id;
+        }
+      } catch (err) {
+        selectEl.innerHTML = `<option value="">Failed to load concepts</option>`;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[ch]));
+    }
+
+    function renderProductionDashboard(rawData) {
+      // Keep all AI-generated strings escaped before rendering HTML.
+      const data = escapeDeep(rawData);
+      function escapeDeep(value) {
+        if (typeof value === "string") return escapeHtml(value);
+        if (Array.isArray(value)) return value.map(escapeDeep);
+        if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, escapeDeep(v)]));
+        return value;
+      }
+      document.getElementById("est-days-badge").innerText = data.shooting_estimate.total_estimated_shooting_days + " Days";
+      document.getElementById("total-scenes-badge").innerText = data.complexity_stats.total_scenes;
+
+      const displayArea = document.getElementById("prod-display-area");
+      const usageHtml = `<div class="screen9-usage"><strong>${data.cache_hit ? "Cached result" : "Fresh AI analysis"}</strong><span>Provider: ${data.provider || "Not reported"}</span><span>Model: ${data.model || "Not reported"}</span><span>Input tokens: ${data.input_tokens ?? "—"}</span><span>Output tokens: ${data.output_tokens ?? "—"}</span>${data.cache_hit ? "<span>Estimated repeat-call API usage: 0 tokens</span>" : ""}</div>`;
+      const notesHtml = (data.review_notes || []).length ? `<div class="card screen9-review-notes"><h2>Review notes</h2><ul>${data.review_notes.map(n => `<li>${n}</li>`).join("")}</ul><p>Production counts and shooting days are planning estimates; confirm them with the line producer.</p></div>` : `<div class="screen9-review-notes"><p>Production counts and shooting days are planning estimates; confirm them with the line producer.</p></div>`;
+      const stats = data.complexity_stats;
+      const formula = data.shooting_estimate;
+
+      // 1. Complexity & Environment Stats
+      const statsHtml = `
+        <div class="card" style="margin-bottom: 20px;">
+          <h2 style="font-size: 1.15rem; margin-bottom: 12px;">Scene & Environmental Complexity Breakdown</h2>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; text-align: center;">
+            <div style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--line);">
+              <div style="font-size: 1.3rem; font-weight: 700;">${stats.interior_scenes} / ${stats.exterior_scenes}</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">INT / EXT Ratio</div>
+            </div>
+            <div style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--line);">
+              <div style="font-size: 1.3rem; font-weight: 700;">${stats.day_scenes} / ${stats.night_scenes}</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">DAY / NIGHT Ratio</div>
+            </div>
+            <div style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--line);">
+              <div style="font-size: 1.3rem; font-weight: 700; color: #dc2626;">${stats.high_complexity_scenes}</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">High-Complexity Scenes</div>
+            </div>
+            <div style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--line);">
+              <div style="font-size: 1.3rem; font-weight: 700; color: var(--brand-green);">${stats.low_complexity_scenes}</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">Standard / Dialogue Scenes</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // 2. Visible Formula Box (Blueprint requirement)
+      const formulaHtml = `
+        <div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--brand-green); background: rgba(34, 197, 94, 0.04);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 style="font-size: 1.15rem; margin:0;">Shooting-Day Formula (Visible Calculation)</h2>
+            <span class="chip ok">Pace: ${formula.base_scenes_per_day} scenes/day</span>
+          </div>
+          <div style="margin-top: 10px; font-family: monospace; font-size: 0.95rem; background: #fff; padding: 12px; border-radius: 6px; border: 1px solid var(--line);">
+            ${formula.visible_formula}
+          </div>
+          <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
+            Calculated as base scene throughput plus location move penalties and high-complexity stunt/crowd buffers.
+          </div>
+        </div>
+      `;
+
+      // 3. Cast Breakdown Table
+      const castRows = data.cast_breakdown.map(c => `
+        <tr>
+          <td><strong>${c.name}</strong></td>
+          <td><span class="chip ${c.role_tier === 'Principal Lead' ? 'ok' : 'info'}">${c.role_tier}</span></td>
+          <td>~${c.scene_count_estimate} scenes</td>
+          <td>${c.costume_changes}</td>
+          <td style="font-size: 0.82rem; color: var(--text-muted);">${c.key_scenes}</td>
+          <td style="font-size: 0.85rem;">${c.notes}</td>
+        </tr>
+      `).join("");
+
+      const castTableHtml = `
+        <div class="card" style="margin-bottom: 20px;">
+          <h2 style="font-size: 1.15rem; margin-bottom: 12px;">Cast & Role Production Demands</h2>
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+              <thead>
+                <tr style="text-align: left; border-bottom: 2px solid var(--line); color: var(--text-muted);">
+                  <th style="padding: 8px;">Character</th>
+                  <th style="padding: 8px;">Tier</th>
+                  <th style="padding: 8px;">Estimated Scenes</th>
+                  <th style="padding: 8px;">Costumes</th>
+                  <th style="padding: 8px;">Key Scenes</th>
+                  <th style="padding: 8px;">Notes & Demands</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${castRows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      // 4. Locations Table
+      const locRows = data.location_breakdown.map(l => `
+        <tr>
+          <td><strong>${l.name}</strong></td>
+          <td><span class="chip info">${l.setting_type} · ${l.lighting}</span></td>
+          <td><span class="chip ${l.complexity === 'High' ? 'danger' : 'ok'}">${l.complexity}</span></td>
+          <td style="font-size: 0.82rem; color: var(--text-muted);">${l.scene_references.join(", ")}</td>
+          <td style="font-size: 0.85rem;">${l.practical_considerations}</td>
+        </tr>
+      `).join("");
+
+      const locationTableHtml = `
+        <div class="card" style="margin-bottom: 20px;">
+          <h2 style="font-size: 1.15rem; margin-bottom: 12px;">Location Breakdown & Set Complexity</h2>
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+              <thead>
+                <tr style="text-align: left; border-bottom: 2px solid var(--line); color: var(--text-muted);">
+                  <th style="padding: 8px;">Location</th>
+                  <th style="padding: 8px;">Type & Lighting</th>
+                  <th style="padding: 8px;">Complexity</th>
+                  <th style="padding: 8px;">Scene References</th>
+                  <th style="padding: 8px;">Practical Considerations</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${locRows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      // 5. Prioritised Rewrite Plan Cards
+      const rewriteRows = data.rewrite_plan.map(task => {
+        const safeTaskId = String(task.task_id || "").replace(/[^a-zA-Z0-9_-]/g, "");
+        const pColor = task.priority === 'High' ? 'color:#dc2626;' : (task.priority === 'Medium' ? 'color:#d97706;' : 'color:var(--brand-green);');
+        return `
+          <div class="card" style="margin-bottom: 14px; border-left: 4px solid ${task.priority === 'High' ? '#dc2626' : '#3b82f6'};">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong style="font-size:1.05rem;">[${task.task_id}] ${task.target_scenes}</strong>
+                <span style="margin-left: 8px; font-weight: 700; ${pColor}">${task.priority} Priority</span>
+              </div>
+              <div style="display:flex; gap: 8px; align-items:center;">
+                <span style="font-size:0.85rem; color:var(--text-muted);">Owner:</span>
+                <input type="text" id="owner-${safeTaskId}" value="${task.owner}" style="padding:4px 8px; border:1px solid var(--line); border-radius:4px; font-size:0.85rem; width:100px;">
+                <select id="status-${safeTaskId}" style="padding:4px 8px; border:1px solid var(--line); border-radius:4px; font-size:0.85rem;">
+                  <option value="Open" ${task.status === 'Open' ? 'selected' : ''}>Open</option>
+                  <option value="In Progress" ${task.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                  <option value="Resolved" ${task.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+                </select>
+                <button class="btn amber" style="padding:4px 10px; font-size:0.8rem;" onclick="updateTask('${safeTaskId}')">Update</button>
+              </div>
+            </div>
+
+            <div style="font-size:0.9rem; margin-top:8px;">
+              <p><strong>Identified Issue:</strong> ${task.issue_identified}</p>
+              <p><strong>Proposed Rewrite:</strong> ${task.proposed_rewrite}</p>
+              <p style="color:var(--brand-blue); margin-bottom:0;"><strong>Expected Impact:</strong> ${task.expected_impact}</p>
+            </div>
+            <div id="task-feedback-${safeTaskId}" style="font-size:0.8rem; margin-top:4px;"></div>
+          </div>
+        `;
+      }).join("");
+
+      // 6. Version Comparison
+      const vDiff = data.version_comparison;
+      const vDiffHtml = `
+        <div class="card" style="margin-bottom: 20px;">
+          <h2 style="font-size: 1.15rem; margin-bottom: 12px;">Version Comparison & Evolution (Draft v${vDiff.current_version})</h2>
+          <p style="font-size:0.92rem;"><strong>Draft Summary:</strong> ${vDiff.comparison_summary}</p>
+          <p style="font-size:0.85rem; color:var(--text-muted);">Only compare against an earlier draft if that version was provided to the analysis. Otherwise, treat change claims as unverified.</p>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; font-size:0.88rem; margin-top:10px;">
+            <div style="background:#f8fafc; padding:12px; border-radius:6px; border:1px solid var(--line);">
+              <strong style="color:var(--brand-green);">Resolved from Previous:</strong>
+              <ul style="margin-top:6px; padding-left:18px;">
+                ${vDiff.resolved_from_previous.map(r => `<li>${r}</li>`).join("")}
+              </ul>
+            </div>
+            <div style="background:#f8fafc; padding:12px; border-radius:6px; border:1px solid var(--line);">
+              <strong style="color:var(--brand-blue);">Production & Narrative Impacts:</strong>
+              <ul style="margin-top:6px; padding-left:18px;">
+                ${vDiff.production_impact_changes.map(p => `<li>${p}</li>`).join("")}
+              </ul>
+            </div>
+          </div>
+        </div>
+      `;
+
+      displayArea.innerHTML = `
+        ${usageHtml}
+        ${notesHtml}
+        ${statsHtml}
+        ${formulaHtml}
+        ${castTableHtml}
+        ${locationTableHtml}
+        
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 1.25rem; margin-bottom: 14px;">Prioritised Rewrite Action Plan</h2>
+          ${rewriteRows}
+        </div>
+
+        ${vDiffHtml}
+
+        <div style="margin-top: 24px;">
+          <a class="btn amber" href="/screen/10" style="display: inline-block; width: 100%; text-align: center; text-decoration: none;">
+            Proceed to Screen 10: Human Review, Final Decisions & Export &rarr;
+          </a>
+        </div>
+      `;
+    }
+
+    async function updateTask(taskId) {
+      const statusVal = document.getElementById(`status-${taskId}`).value;
+      const ownerVal = document.getElementById(`owner-${taskId}`).value.trim();
+      const feedbackDiv = document.getElementById(`task-feedback-${taskId}`);
+
+      feedbackDiv.innerHTML = `<span class="note">Updating task...</span>`;
+
+      try {
+        const res = await fetch(`/api/screen9/task/${activeProjectId}/${taskId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: statusVal, owner: ownerVal })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.detail || "Update failed");
+        }
+
+        feedbackDiv.innerHTML = `<span class="chip ok">✓ Saved (${statusVal} · ${ownerVal})</span>`;
+      } catch (err) {
+        feedbackDiv.textContent = `Error: ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
