@@ -80,7 +80,6 @@ async def run_screen2_analysis(
         "episode_count": expected_episodes or parsed_structure.get("detected_count", 1) or 1,
         "scene_allocation": scene_allocation if scene_allocation in ("auto", "fixed") else "auto",
         "target_scenes_per_episode": max(1, min(int(target_scenes_per_episode or 3), 100)),
-        "max_episode_duration_seconds": 180,
         "user_confirmed": bool(expected_episodes),
     }
     parsed_structure["structure_settings"] = structure_settings
