@@ -77,7 +77,7 @@
         $('project-meta').textContent = 'Approve a concept and upload its screenplay before running Screen 5.';
         return;
       }
-      select.innerHTML = ready.map(p => { const s = p.episode_structure_settings || {}; return `<option value="${escapeHtml(p.id)}" data-version="${escapeHtml(p.screenplay_version)}" data-title="${escapeHtml(p.screenplay_title || p.title)}" data-episodes="${escapeHtml(s.episode_count || 1)}" data-scenes="${escapeHtml(s.target_scenes_per_episode || 3)}" data-allocation="${escapeHtml(s.scene_allocation || 'fixed')}">${escapeHtml(p.title)} · v${escapeHtml(p.screenplay_version)}</option>`; }).join('');
+      select.innerHTML = ready.map(p => `<option value="${escapeHtml(p.id)}" data-version="${escapeHtml(p.screenplay_version)}" data-title="${escapeHtml(p.screenplay_title || p.title)}">${escapeHtml(p.title)} · v${escapeHtml(p.screenplay_version)}</option>`).join('');
       const rememberedProject = RRSessionResults.getProject();
       if (rememberedProject && ready.some(p => String(p.id) === rememberedProject)) select.value = rememberedProject;
       updateProjectMeta();
@@ -98,7 +98,7 @@
   function updateProjectMeta() {
     const option = $('concept-select').selectedOptions[0];
     if (!option || !option.value) return;
-    $('project-meta').textContent = `${option.dataset.title || 'Screenplay'} · version ${option.dataset.version || '—'} · ${option.dataset.episodes || '1'} producer-selected episode(s) · ${option.dataset.scenes || '3'} target scenes/episode · 3-minute maximum`;
+    $('project-meta').textContent = `${option.dataset.title || 'Screenplay'} · version ${option.dataset.version || '—'} · AI episode-count recommendation · 3-minute maximum per episode`;
   }
 
   async function runAnalysis() {
