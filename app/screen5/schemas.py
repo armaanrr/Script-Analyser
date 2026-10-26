@@ -26,6 +26,9 @@ class EpisodeDiagnostic(BaseModel):
     ending_cliffhanger: str = ""
     cliffhanger_rating: Literal["Strong", "Moderate", "Weak"] = "Moderate"
     continuity_payoffs: str = ""
+    estimated_word_count: int = 0
+    estimated_runtime_seconds: int = 0
+    exceeds_max_runtime: bool = False
     rewrite_task: Optional[RewriteTask] = None
 
 
@@ -33,6 +36,11 @@ class Screen5DiagnosticsResponse(BaseModel):
     project_id: int
     screenplay_version: str = "1.0"
     total_episodes_detected: int
+    producer_selected_episode_count: int = 1
+    recommended_episode_count: int = 1
+    recommendation_reason: str = ""
+    max_episode_duration_seconds: int = 180
+    episodes_over_runtime_limit: int = 0
     episodes: List[EpisodeDiagnostic]
     provider: str = ""
     model: str = ""
