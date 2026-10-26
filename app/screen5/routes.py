@@ -35,7 +35,7 @@ def screen5_projects(db: Session = Depends(get_db)):
             "screenplay_title": screenplay.title if screenplay else None,
             "parse_status": screenplay.parse_status if screenplay else None,
             "word_count": (screenplay.parse or {}).get("word_count", 0) if screenplay else 0,
-            "episode_structure_settings": (screenplay.parse or {}).get("structure_settings", {}) if screenplay else {}})
+            })
     return projects
 
 
