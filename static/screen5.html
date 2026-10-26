@@ -74,7 +74,7 @@
       const ready = projects.filter(p => p.approved && p.screenplay_version != null);
       if (!ready.length) {
         select.innerHTML = '<option value="">No approved projects with an uploaded screenplay</option>';
-    $('project-meta').textContent = `${option.dataset.title || 'Screenplay'} · version ${option.dataset.version || '—'} · ${option.dataset.episodes || '1'} producer-selected episode(s) · ${option.dataset.scenes || '3'} target scenes/episode · 3-minute maximum`;
+        $('project-meta').textContent = 'Approve a concept and upload its screenplay before running Screen 5.';
         return;
       }
       select.innerHTML = ready.map(p => { const s = p.episode_structure_settings || {}; return `<option value="${escapeHtml(p.id)}" data-version="${escapeHtml(p.screenplay_version)}" data-title="${escapeHtml(p.screenplay_title || p.title)}" data-episodes="${escapeHtml(s.episode_count || 1)}" data-scenes="${escapeHtml(s.target_scenes_per_episode || 3)}" data-allocation="${escapeHtml(s.scene_allocation || 'fixed')}">${escapeHtml(p.title)} · v${escapeHtml(p.screenplay_version)}</option>`; }).join('');
@@ -98,7 +98,7 @@
   function updateProjectMeta() {
     const option = $('concept-select').selectedOptions[0];
     if (!option || !option.value) return;
-    $('project-meta').textContent = `${option.dataset.title || 'Screenplay'} · version ${option.dataset.version || '—'}`;
+    $('project-meta').textContent = `${option.dataset.title || 'Screenplay'} · version ${option.dataset.version || '—'} · ${option.dataset.episodes || '1'} producer-selected episode(s) · ${option.dataset.scenes || '3'} target scenes/episode · 3-minute maximum`;
   }
 
   async function runAnalysis() {
